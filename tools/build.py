@@ -364,6 +364,7 @@ def why_us():
 
 
 WORK_PHOTOS = [  # real SmartEye installations (EXIF/GPS stripped); first 4 appear on the homepage
+    ("work-17", "Երկու ոսպնյակով Wi‑Fi PTZ տեսախցիկ"),
     ("work-8", "Գմբեթավոր տեսախցիկներ քարե տան վրա"),
     ("net-1", "Ցանցային ռեք՝ կոկիկ մալուխավորում"),
     ("work-12", "Տեսախցիկներ նոր շենքի պատին"),
