@@ -443,3 +443,6 @@ h1.hero-kicker { font-family: inherit; font-size: .85rem; font-weight: 500; line
   .site-logo { height: 36px; }
   .navbar .navbar-nav .nav-link { margin-right: 18px !important; padding-left: 0; padding-right: 0; font-size: .95rem; }
 }
+
+/* long Armenian words in narrow cards */
+.step p, .step h6, .dev-card p, .dev-card h6 { overflow-wrap: break-word; }

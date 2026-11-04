@@ -39,8 +39,8 @@ SERVICES = [
      "Գրասենյակների և կազմակերպությունների լոկալ ցանցերի (LAN) և Wi-Fi-ի նախագծում, մոնտաժ և սպասարկում՝ կայուն, արագ և անվտանգ կապի համար։"),
     ("fa-check-double", "Ցանցային մալուխի ստուգում (Fluke)",
      "Ցանցային մալուխների ստուգում Fluke սարքով։ Տալիս ենք հաշվետվություն, թե գիծը համապատասխանում է Cat5e կամ Cat6 ստանդարտին։ Պետք է նոր ցանցի հանձնման, խնդիրների որոնման և կապալառուի աշխատանքը ստուգելու համար։"),
-    ("fa-balance-scale", "Խանութի կշեռքներ",
-     "Խանութների և առևտրի կետերի համար կշեռքների տեղադրում, կարգավորում և միացում։"),
+    ("fa-cash-register", "Խանութների ավտոմատացում",
+     "Առևտրային սարքավորումների տեղադրում և միացում՝ դրամարկղային համակարգիչ, շտրիխկոդի սկաներ, չեկի և պիտակի տպիչներ, կշեռքներ, ՀԴՄ։ Ամեն ինչ կարգավորում ենք, որ աշխատի որպես մեկ համակարգ։"),
     ("fa-desktop", "Համակարգիչների սպասարկում",
      "Համակարգիչների արագ և որակյալ սպասարկում՝ ինչպես տանը, այնպես էլ գրասենյակում։"),
 ]
@@ -58,7 +58,7 @@ LD_BUSINESS = json.dumps({
     "areaServed": [{"@type": "City", "name": "Yerevan"}, {"@type": "AdministrativeArea", "name": "Aragatsotn"}],
     "knowsAbout": ["CCTV installation", "IP cameras", "Hikvision", "Dahua", "alarm systems", "Hikvision AX PRO", "LAN networks", "Fluke cable certification"],
     "makesOffer": [{"@type": "Offer", "itemOffered": {"@type": "Service", "name": n}} for n in
-                   ["Տեսախցիկների տեղադրում", "Ազդանշանային համակարգերի տեղադրում", "Լոկալ ցանցերի և Wi-Fi-ի կառուցում", "Մալուխի ստուգում Fluke-ով", "Խանութի կշեռքների տեղադրում"]],
+                   ["Տեսախցիկների տեղադրում", "Ազդանշանային համակարգերի տեղադրում", "Լոկալ ցանցերի և Wi-Fi-ի կառուցում", "Մալուխի ստուգում Fluke-ով", "Խանութների ավտոմատացում և առևտրային սարքավորումների տեղադրում"]],
     "sameAs": ["https://www.instagram.com/smarteye_system/", "https://www.facebook.com/1385826704616620", "https://www.tiktok.com/@smarteye.am"],
 }, ensure_ascii=False)
 
@@ -80,7 +80,7 @@ def head(title, desc, fname="index.html"):
     <meta charset="utf-8">
     <title>{title}</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="տեսախցիկների տեղադրում, տեսահսկում Երևան, ազդանշանային համակարգ, ալարմ, լոկալ ցանց, LAN, Hikvision, Dahua, խանութի կշեռք, SmartEye" name="keywords">
+    <meta content="տեսախցիկների տեղադրում, տեսահսկում Երևան, ազդանշանային համակարգ, ալարմ, լոկալ ցանց, LAN, Hikvision, Dahua, խանութի ավտոմատացում, առևտրային սարքավորումներ, POS, շտրիխկոդի սկաներ, խանութի կշեռք, SmartEye" name="keywords">
     <meta content="{desc}" name="description">{robots}
     <meta property="og:title" content="{title}">
     <meta property="og:description" content="{desc}">
@@ -219,6 +219,7 @@ def footer(extra_js=""):
                     <a class="btn btn-link" href="about.html">Մեր մասին</a>
                     <a class="btn btn-link" href="smart.html">Խելացի տեսախցիկներ</a>
                     <a class="btn btn-link" href="alarm.html">Ազդանշանային համակարգեր</a>
+                    <a class="btn btn-link" href="shop.html">Խանութների ավտոմատացում</a>
                     <a class="btn btn-link" href="project.html">Աշխատանքներ</a>
                     <a class="btn btn-link" href="quote.html">Անվճար խորհրդատվություն</a>
                     <a class="btn btn-link" href="contact.html">Կապ</a>
@@ -270,7 +271,8 @@ def page(fname, active, title, desc, body, extra_js=""):
 # ---------- reusable sections ----------
 
 MORE_LINKS = {"Տեսախցիկների տեղադրում": ("smart.html", "Խելացի տեսախցիկներ"),
-              "Ազդանշանային և հակահրդեհային համակարգեր": ("alarm.html", "Մանրամասն")}
+              "Ազդանշանային և հակահրդեհային համակարգեր": ("alarm.html", "Մանրամասն"),
+              "Խանութների ավտոմատացում": ("shop.html", "Մանրամասն")}
 
 
 def more_link(name):
@@ -697,6 +699,107 @@ def smart_page_body():
 """
 
 
+def shop_page_body():
+    gains = [("fa-barcode", "Վաճառք վայրկյանների ընթացքում՝ սկաներով, առանց ձեռքով գին մուտքագրելու"),
+             ("fa-boxes", "Ապրանքի մնացորդը միշտ երևում է ծրագրում"),
+             ("fa-receipt", "Չեկ և ՀԴՄ՝ ավտոմատ, ամեն վաճառքի համար"),
+             ("fa-chart-line", "Տեսնում եք՝ ինչ է վաճառվել, երբ և ինչքան")]
+    gains_html = "".join(f"""
+                <div class="col-6 col-lg-3">
+                    <div class="step h-100">
+                        <span class="step-num">{i + 1}</span>
+                        <i class="fa {ic} step-icon"></i>
+                        <p class="mb-0">{t}</p>
+                    </div>
+                </div>""" for i, (ic, t) in enumerate(gains))
+    devices = [
+        ("fa-desktop", "Դրամարկղային համակարգիչ (POS)", "Դրամարկղի հիմնական սարքը՝ սենսորային էկրանով կամ սովորական համակարգիչ։"),
+        ("fa-barcode", "Շտրիխկոդի սկաներ", "Ձեռքի, անլար կամ սեղանի. կարդում է ապրանքի կոդը մեկ վայրկյանում։"),
+        ("fa-receipt", "Չեկի տպիչ", "Արագ ջերմային տպիչ՝ հաճախորդի չեկի համար։"),
+        ("fa-tags", "Պիտակի տպիչ", "Գնապիտակներ և շտրիխկոդեր՝ ապրանքի վրա փակցնելու համար։"),
+        ("fa-balance-scale", "Կշեռքներ", "Պիտակ տպող կշեռքներ և դրամարկղին միացվող կշեռքներ՝ կշռովի ապրանքի համար։"),
+        ("fa-file-invoice-dollar", "ՀԴՄ", "Հսկիչ-դրամարկղային մեքենայի միացում դրամարկղային ծրագրին։"),
+        ("fa-cash-register", "Դրամարկղի արկղ և հաճախորդի էկրան", "Արկղը բացվում է ավտոմատ, իսկ հաճախորդը տեսնում է գինը։"),
+        ("fa-video", "Տեսախցիկ դրամարկղի վրա", "Դրամարկղի և սրահի հսկողություն, դիտում հեռախոսից։"),
+    ]
+    dev_html = "".join(f"""
+                <div class="col-6 col-lg-3">
+                    <div class="dev-card h-100">
+                        <i class="fa {ic}"></i>
+                        <h6>{t}</h6>
+                        <p class="mb-0">{d}</p>
+                    </div>
+                </div>""" for ic, t, d in devices)
+    steps = [("fa-search", "Զննում", "Գալիս ենք խանութ, նայում ենք տարածքը, ապրանքը և ձեր օգտագործած ծրագիրը"),
+             ("fa-clipboard-check", "Ընտրություն", "Առաջարկում ենք սարքեր, որոնք համատեղելի են ձեր ծրագրի և բյուջեի հետ"),
+             ("fa-tools", "Տեղադրում և միացում", "Միացնում ենք բոլոր սարքերը, ցանցը և ինտերնետը, ստուգում ենք ամեն ինչ"),
+             ("fa-user-check", "Ուսուցում", "Ցույց ենք տալիս վաճառողներին, թե ինչպես աշխատել, և մնում ենք կապի մեջ")]
+    steps_html = "".join(f"""
+                <div class="col-6 col-lg-3">
+                    <div class="step h-100">
+                        <span class="step-num">{i + 1}</span>
+                        <i class="fa {ic} step-icon"></i>
+                        <h6 class="mb-1">{t}</h6>
+                        <p class="mb-0">{d}</p>
+                    </div>
+                </div>""" for i, (ic, t, d) in enumerate(steps))
+    faq = [
+        ("Սարքավորումը դո՞ւք եք վաճառում։", "Ոչ։ Սարքավորումը ձեռք եք բերում պաշտոնական ներմուծողներից կամ խանութներից։ Մենք կօգնենք ընտրել ճիշտ մոդելները, ապա կտեղադրենք, կմիացնենք և կկարգավորենք։"),
+        ("Ո՞ր ծրագրի հետ եք աշխատում։", "Աշխատում ենք այն ծրագրի հետ, որը դուք օգտագործում եք կամ ընտրում եք։ Սարքերն ընտրում ենք այնպես, որ համատեղելի լինեն ձեր ծրագրի հետ։"),
+        ("Կարելի՞ է ավելացնել առկա համակարգին։", "Այո։ Կարող ենք միացնել նոր սկաներ, տպիչ կամ կշեռք արդեն աշխատող դրամարկղին, կամ ավելացնել երկրորդ դրամարկղ։"),
+        ("Փոքր խանութի համար էլ արժե՞։", "Այո։ Նույնիսկ մեկ դրամարկղով խանութում սկաները և ծրագիրը արագացնում են վաճառքը և ցույց են տալիս, թե ինչ ապրանք է մնացել։"),
+        ("Կարելի՞ է միանգամից դնել նաև տեսախցիկներ։", "Այո։ Կարող ենք մեկ այցով տեղադրել նաև տեսախցիկներ դրամարկղի և սրահի վրա, ցանց և Wi-Fi, որ ամեն ինչ աշխատի միասին։"),
+    ]
+    faq_html = "".join(f"""
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="ph{i}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pc{i}" aria-expanded="false" aria-controls="pc{i}">{q}</button>
+                    </h3>
+                    <div id="pc{i}" class="accordion-collapse collapse" aria-labelledby="ph{i}" data-bs-parent="#faq">
+                        <div class="accordion-body">{a}</div>
+                    </div>
+                </div>""" for i, (q, a) in enumerate(faq))
+    faq_html += faq_ld(faq)
+
+    def head(t, sub=""):
+        return f"""
+            <div class="text-center mb-5">
+                <div class="bg-primary mb-3 mx-auto" style="width: 60px; height: 2px;"></div>
+                <h2 class="display-5 mb-{'3' if sub else '0'}">{t}</h2>
+                {f'<p class="mx-auto mb-0" style="max-width: 660px;">{sub}</p>' if sub else ''}
+            </div>"""
+
+    return f"""
+    <div class="container-xxl py-5">
+        <div class="container">{head("Ինչ է տալիս ավտոմատացումը", "Առևտրային սարքավորումները միացնում ենք մեկ համակարգի մեջ, որ վաճառքն արագ լինի, իսկ դուք միշտ տեսնեք՝ ինչ է կատարվում խանութում։")}
+            <div class="row g-4">{gains_html}
+            </div>
+        </div>
+    </div>
+
+    <div class="container-xxl py-5">
+        <div class="container">{head("Ինչ ենք տեղադրում և միացնում", "Կազմում ենք համակարգը ըստ ձեր խանութի՝ միայն այն, ինչ իսկապես պետք է։ Սարքավորումը՝ պաշտոնական ներմուծողներից, իսկ տեղադրումն ու կարգավորումը՝ մենք։")}
+            <div class="row g-3">{dev_html}
+            </div>
+        </div>
+    </div>
+
+    <div class="container-xxl py-5">
+        <div class="container">{head("Ինչպես ենք աշխատում")}
+            <div class="row g-4">{steps_html}
+            </div>
+        </div>
+    </div>
+
+    <div class="container-xxl py-5">
+        <div class="container" style="max-width: 860px;">{head("Հաճախ տրվող հարցեր")}
+            <div class="accordion" id="faq">{faq_html}
+            </div>
+        </div>
+    </div>
+""" + calc_cta()
+
+
 def alarm_page_body():
     flow = [("fa-door-open", "Դուռը բացվում է կամ սենսորը շարժում է տեսնում"), ("fa-satellite-dish", "Սենսորը ազդանշանն ուղարկում է կառավարման վահանակին"),
             ("fa-volume-up", "Սիրենան միանում է"), ("fa-mobile-alt", "Ահազանգը նկարով կամ տեսանյութով գալիս է ձեր հեռախոսին")]
@@ -1004,7 +1107,7 @@ def build():
     shutil.copy(os.path.join(os.path.dirname(__file__), "smarteye-presentation.pdf"), os.path.join(OUT, "smarteye-presentation.pdf"))
     shutil.copy(os.path.join(os.path.dirname(__file__), "smarteye.css"), os.path.join(OUT, "css", "smarteye.css"))
 
-    site_desc = "SmartEye System — տեսախցիկների, ազդանշանային համակարգերի և լոկալ ցանցերի տեղադրում Երևանում և Արագածոտնի մարզում։ Hikvision և Dahua սարքավորումներ, խանութի կշեռքներ, անվճար խորհրդատվություն։"
+    site_desc = "SmartEye System — տեսախցիկների, ազդանշանային համակարգերի և լոկալ ցանցերի տեղադրում Երևանում և Արագածոտնի մարզում։ խանութների ավտոմատացում, անվճար խորհրդատվություն։"
 
     # index
     trust = [("fa-shield-alt", "Hikvision և Dahua"), ("fa-mobile-alt", "Դիտում հեռախոսից"), ("fa-map-marker-alt", "Երևան և Արագածոտն")]
@@ -1042,7 +1145,7 @@ def build():
         ("Որտե՞ղ եք աշխատում։",
          "Երևանում և Արագածոտնի մարզում։ Այլ վայրերի համար զանգահարեք, կքննարկենք։"),
         ("Բացի տեսախցիկներից ի՞նչ եք անում։",
-         "Ազդանշանային և հակահրդեհային համակարգեր, լոկալ ցանցեր և Wi-Fi, խանութի կշեռքներ, համակարգիչների սպասարկում։"),
+         "Ազդանշանային և հակահրդեհային համակարգեր, լոկալ ցանցեր և Wi-Fi, խանութների ավտոմատացում, համակարգիչների սպասարկում։"),
     ]
     faq_html = "".join(f"""
                 <div class="accordion-item">
@@ -1148,6 +1251,11 @@ def build():
     page("alarm.html", "", "Ազդանշանային համակարգեր Hikvision | SmartEye System",
          "Hikvision ալարմ՝ անլար (AX PRO) և լարային (AX Hybrid PRO)։ Շարժման, դռան, ծխի և ջրի սենսորներ, ահազանգ հեռախոսին։ Տեղադրում Երևանում և Արագածոտնում։",
          page_header("Ազդանշանային համակարգեր") + alarm_page_body())
+
+    # shop automation
+    page("shop.html", "", "Խանութների ավտոմատացում | SmartEye System",
+         "Առևտրային սարքավորումների տեղադրում և միացում՝ դրամարկղային համակարգիչ (POS), շտրիխկոդի սկաներ, չեկի և պիտակի տպիչներ, կշեռքներ, ՀԴՄ։ Երևան և Արագածոտն։",
+         page_header("Խանութների ավտոմատացում") + shop_page_body())
 
     # smart cameras
     page("smart.html", "", "Խելացի (AI) տեսախցիկներ | SmartEye System",
@@ -1286,7 +1394,7 @@ def about_block(more_link):
 
 
 def seo_files():
-    pages = ["index.html", "service.html", "smart.html", "alarm.html", "project.html", "about.html", "quote.html", "contact.html"]
+    pages = ["index.html", "service.html", "smart.html", "alarm.html", "shop.html", "project.html", "about.html", "quote.html", "contact.html"]
     with open(os.path.join(OUT, "sitemap.xml"), "w") as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
         for pg in pages:
