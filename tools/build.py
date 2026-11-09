@@ -366,6 +366,7 @@ def why_us():
 
 
 WORK_PHOTOS = [  # real SmartEye installations (EXIF/GPS stripped); first 4 appear on the homepage
+    ("work-18", "NVR-ի և IP տեսախցիկների կարգավորում"),
     ("work-17", "Երկու ոսպնյակով Wi‑Fi PTZ տեսախցիկ"),
     ("work-8", "Գմբեթավոր տեսախցիկներ քարե տան վրա"),
     ("net-1", "Ցանցային ռեք՝ կոկիկ մալուխավորում"),
@@ -406,6 +407,7 @@ def work_gallery(limit=None):
 
 
 WORK_VIDEOS = [  # self-hosted short clips (compressed, metadata stripped) in img/video/
+    ("video-4", "Hikvision տեսախցիկ՝ տեղադրում ծածկի տակ"),
     ("video-1", "Տեսախցիկների տեղադրում շենքի վրա"),
     ("video-2", "Dahua գմբեթավոր տեսախցիկ և դիտում էկրանին"),
     ("video-3", "Hikvision սարքավորումներ"),
