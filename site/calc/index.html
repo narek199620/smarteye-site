@@ -1059,6 +1059,31 @@ const promoActive=()=>$('promoOn').checked&&!!promoText();
 function shortName(c){return String(c.n).split(' — ')[0].trim()}
 function shortDesc(c){const p=String(c.n).split(' — ');if(p.length<2)return '';const d=p.slice(1).join(' ').trim();return d.length>45?d.slice(0,42).replace(/[ ,.;:]+\S*$/,'')+'…':d}
 
+/* ---------- Plain-language explanations for the client ---------- */
+function camsInLines(L){let n=0,mpSum=0;L.forEach(l=>{const d=(l.d||'')+' '+l.n;if(l.kind==='prod'&&/տեսախց|camera/i.test(d)){const m=d.match(/(\d)\s?MP/i);n+=l.q;mpSum+=(m?+m[1]:4)*l.q}});return {n,mp:n?mpSum/n:4}}
+function explainOf(l,L){
+  const d=(l.d||'')+' '+l.n, u=d.toUpperCase(), out=[];let m;
+  if(/տեսախց|CAMERA/i.test(d)){
+    if((m=u.match(/(\d)\s?MP/))){const mp=+m[1];out.push(mp>=8?'4K՝ շատ մանր մանրամասներ, համարանիշներ':mp>=5?'5MP՝ դեմքերը հստակ մինչև ~12 մ':mp>=4?'4MP՝ դեմքերը հստակ մինչև ~10 մ':mp>=3?'3MP՝ լավ պատկեր փոքր տարածքի համար':'2MP՝ ընդհանուր դիտում')}
+    if(/COLORVU|FULL-COLOR/.test(u))out.push('գիշերը՝ գունավոր պատկեր');
+    else if(/HYBRID LIGHT/.test(u))out.push('գիշերը սև-սպիտակ, շարժման դեպքում՝ գունավոր');
+    else if(/IP տեսախց|ANALOG|Անալոգ/i.test(d))out.push('գիշերը՝ ինֆրակարմիր (սև-սպիտակ)');
+    if(/ACUSENSE|WIZSENSE/.test(u))out.push('տարբերում է մարդուն և մեքենան, քիչ կեղծ ահազանգ');
+    if(/միկրոֆոն|MIC|AUDIO/i.test(d))out.push('ձայնով');
+    if(/BULLET/.test(u))out.push('դրսի համար');else if(/DOME|TURRET/.test(u))out.push('ներսի/ծածկի տակ');
+    if(/WI-?FI/.test(u))out.push('Wi-Fi, առանց մալուխի');
+  }else if((m=u.match(/NVR|DVR/))){
+    const ch=d.match(/(\d+)\s*կանալ/);out.push(`ձայնագրում է ${ch?'մինչև '+ch[1]+' ':''}տեսախցիկ, դիտում հեռախոսից`);
+    const pe=d.match(/(\d+)\s*PoE/);if(pe)out.push('տեսախցիկները սնվում են նույն մալուխով');
+  }else if(/HDD|սկավառակ/i.test(d)){
+    const tb=(u.match(/(\d+(?:\.\d)?)\s?TB/)||[])[1];const c=camsInLines(L||[]);
+    if(tb&&c.n){const br=(BASE[c.mp>=8?8:c.mp>=5?5:c.mp>=4?4:2])*Math.pow(10/15,0.75);const gbDay=br*1000/8*86400/1e9*c.n;const days=Math.floor(+tb*1000*0.93/gbDay);
+      out.push(`պահում է ~${days} օրվա արխիվ ${c.n} տեսախցիկի համար`)}
+    else out.push('տեսագրությունների պահոց');
+  }else if(/Սվիչ|SWITCH/i.test(d))out.push('միացնում և սնուցում է տեսախցիկները');
+  return out.join(' · ');
+}
+
 function quoteLines(){
   const L=[];
   cart.forEach(c=>{if(c.q>0)L.push({n:shortName(c),d:c.d||shortDesc(c),q:c.q,u:'հատ',p:c.p,cost:c.cost==null?null:c.cost,kind:'prod'})});
@@ -1191,13 +1216,14 @@ async function makePdf(){
   doc.setFontSize(9.5);
   L.forEach((l,i)=>{
     const lines=doc.splitTextToSize(l.n,cx.q-cx.name-16);
-    doc.setFontSize(8.5);const dl=l.d?doc.splitTextToSize(l.d,cx.q-cx.name-16):[];doc.setFontSize(9.5);
-    const h=Math.max(1,lines.length)*4.6+dl.length*4+3;
+    doc.setFontSize(8.5);const dl=l.d?doc.splitTextToSize(l.d,cx.q-cx.name-16):[];const ex=l.kind==='prod'?explainOf(l,L):'';const el=ex?doc.splitTextToSize(ex,cx.q-cx.name-16):[];doc.setFontSize(9.5);
+    const h=Math.max(1,lines.length)*4.6+dl.length*4+el.length*4+3;
     if(y+h>270){doc.addPage();y=20;head();doc.setFontSize(9.5)}
     if(i%2){doc.setFillColor(242,246,253);doc.rect(M,y-4.6,W-2*M,h,'F')}
     doc.setTextColor(...grey);doc.text(String(i+1),cx.n+2,y);
     doc.setTextColor(30,38,56);doc.setFont('Arm','bold');doc.text(lines,cx.name,y);doc.setFont('Arm','normal');
     if(dl.length){doc.setFontSize(8.5);doc.setTextColor(47,110,200);doc.text(dl,cx.name,y+lines.length*4.6-0.6);doc.setFontSize(9.5);doc.setTextColor(30,38,56)}
+    if(el.length){doc.setFontSize(8.5);doc.setTextColor(95,105,125);doc.text(el,cx.name,y+lines.length*4.6+dl.length*4-0.6);doc.setFontSize(9.5);doc.setTextColor(30,38,56)}
     doc.text(`${l.q}${l.u?' '+l.u:''}`,cx.q,y,{align:'right'});
     doc.text(P(l.p),cx.p,y,{align:'right'});
     doc.setFont('Arm','bold');doc.text(P(l.q*l.p),cx.s-2,y,{align:'right'});doc.setFont('Arm','normal');
