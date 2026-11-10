@@ -501,8 +501,8 @@ function catUI(){
   const ci=$('catInfo');ci.innerHTML='';
   lists.forEach((l,ix)=>{
     const r=document.createElement('div');r.className='lst';
-    r.innerHTML='<div class="n"><b></b><small></small></div><label class="mkl">իմ զեղչ %<input type="number" inputmode="decimal" class="dsin"></label><label class="mkl">հավել. %<input type="number" inputmode="decimal" class="mkin"></label><button class="del" type="button" title="Ջնջել">×</button>';
-    const di=r.querySelector('.dsin');di.value=l.disc||'';di.placeholder='—';di.title='Քո դիլերային զեղչը այս խանութում․ «Իմ գինը» = գին − զեղչ (դիլերային գնացուցակ վերբեռնելու կարիք չկա)';
+    r.innerHTML='<div class="n"><b></b><small></small></div><label class="mkl">ինձ −%<input type="number" inputmode="decimal" class="dsin"></label><label class="mkl">հավել. %<input type="number" inputmode="decimal" class="mkin"></label><button class="del" type="button" title="Ջնջել">×</button>';
+    const di=r.querySelector('.dsin');di.value=l.disc||'';di.placeholder='—';di.title='Ինձ տրվող զեղչը այս խանութում (միայն քեզ համար․ հաճախորդի գինը չի փոխվում)';
     let _dsT=0;di.oninput=()=>{clearTimeout(_dsT);_dsT=setTimeout(()=>{l.disc=+di.value||0;LS.set('lists',lists);rebuildCatalog();renderResults();if($('v-prod').classList.contains('on'))renderProd();pushList(l);toast(l.disc?`${l.name}՝ իմ գինը = գին − ${l.disc}%`:`${l.name}՝ զեղչը հանվեց`)},600)};
     const mi=r.querySelector('.mkin');mi.value=l.mk!=null?l.mk:'';mi.placeholder='—';
     const hasCost=l.items.some(it=>it.cost!=null);if(!hasCost){mi.disabled=true;mi.title='Ներմուծեք նորից՝ ինքնարժեքը պահելու համար'}
@@ -1326,7 +1326,7 @@ function renderShops(){
   shops.forEach((sh,i)=>{
     const r=document.createElement('div');r.className='lst';
     r.innerHTML='<div class="n"><b></b><small></small></div><button type="button" class="btn ghost sm">✎</button><button class="del" type="button">×</button>';
-    r.querySelector('b').textContent=sh.name;r.querySelector('small').textContent=[sh.disc?'զեղչ '+sh.disc+'%':'',sh.phone,sh.tg?'@'+sh.tg.replace(/^@/,''):'',sh.note].filter(Boolean).join(' · ');
+    r.querySelector('b').textContent=sh.name;r.querySelector('small').textContent=[sh.disc?'ինձ −'+sh.disc+'%':'',sh.phone,sh.tg?'@'+sh.tg.replace(/^@/,''):'',sh.note].filter(Boolean).join(' · ');
     r.querySelector('.btn').onclick=()=>shopForm(i);
     const d=r.querySelector('.del');d.onclick=()=>{if(!d.dataset.c){d.dataset.c=1;d.textContent='Ջնջե՞լ';d.style.width='auto';d.style.fontSize='13px';return}shops.splice(i,1);saveShops();renderShops()};
     b.appendChild(r);
@@ -1336,7 +1336,7 @@ function shopForm(i){
   const f=$('shopForm');const sh=i!=null?shops[i]:{name:'',phone:'',tg:'',note:''};
   f.innerHTML=`<label>Անուն<input type="text" class="s_n" placeholder="օր․ Gloria, DGcomputers, Arena"></label>
     <div class="grid2"><label>Հեռախոս / Viber / WhatsApp<input type="tel" class="s_p" placeholder="0XX XXXXXX"></label><label>Telegram<input type="text" class="s_t" placeholder="@username"></label></div>
-    <label>Իմ զեղչը այս խանութում %<input type="number" inputmode="decimal" class="s_d" placeholder="օր․ 8"></label>
+    <label>Ինձ տրվող զեղչը % (միայն ինձ համար, հաճախորդի գինը չի փոխվում)<input type="number" inputmode="decimal" class="s_d" placeholder="օր․ 8"></label>
     <label>Նշում<input type="text" class="s_o" placeholder="օր․ Hikvision, մենեջեր Արամ"></label>
     <button type="button" class="btn s_save">${i!=null?'Պահպանել':'Ավելացնել'}</button>`;
   f.style.display='block';const q=c=>f.querySelector(c);
