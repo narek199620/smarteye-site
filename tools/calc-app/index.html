@@ -208,8 +208,9 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
         <div class="f"><label>Առկայություն (ըստ ցանկ.)</label><select id="m_stk"></select></div>
       </div>
       <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">Մատակարար / բրենդ</label><input type="text" id="m_sup" placeholder="օր․ Hikvision, Dahua"></div>
-      <label class="note" id="mergeRow" style="display:none;align-items:center;gap:8px"><input type="checkbox" id="m_merge" style="width:auto"> Միայն թարմացնել գները/առկայությունը (մնացած ապրանքները չջնջել)</label>
-      <div class="note">Նույն անունով գնացուցակ նորից ներմուծելիս հինը փոխարինվում է նորով, մյուսները մնում են։ Եթե մատակարարը ուղարկել է միայն մի քանի ապրանքի պատասխան, նշեք «Միայն թարմացնել»։</div>
+      <div class="note" id="supWarn" style="color:var(--warn)"></div>
+      <label class="note" id="mergeRow" style="display:none;align-items:center;gap:8px"><input type="checkbox" id="m_merge" style="width:auto"> Ավելացնել/թարմացնել (եղած ապրանքները չջնջել)</label>
+      <div class="note">Յուրաքանչյուր մատակարարի համար օգտագործեք առանձին անուն (Hikvision, Dahua, IMOU…)։</div>
       <div class="grid2" style="margin-top:10px">
         <div class="f"><label>Փոխարժեք (եթե գինը $ է)</label><input type="number" id="m_rate" inputmode="decimal" value="1" step="any"></div>
         <div class="f"><label>Իմ հավելավճարը %</label><input type="number" id="m_mk" inputmode="decimal" value="0" step="any"></div>
@@ -219,6 +220,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <button class="btn" id="m_save">Պահպանել գնացուցակը</button>
     </div>
     <div id="catInfo" style="margin-top:8px"></div>
+    <div id="trashBox"></div>
   </div>
   <div class="card">
     <h2>📦 Ապրանքների բազա</h2>
@@ -449,9 +451,10 @@ function catUI(){
       inp.onblur=done;inp.onkeydown=e=>{if(e.key==='Enter')inp.blur()}};
     r.querySelector('small').textContent=`${l.items.length} ապրանք${l.date?' · '+l.date:''}${l.file?' · '+l.file:''}`;
     const del=r.querySelector('.del');
-    del.onclick=()=>{if(r.dataset.c){deleteList(l.name);lists.splice(ix,1);LS.set('lists',lists);rebuildCatalog();catUI();renderResults()}else{r.dataset.c=1;del.textContent='Ջնջե՞լ';del.style.width='auto';del.style.fontSize='13px'}};
+    del.onclick=()=>{if(r.dataset.c){toTrash(l,'ջնջված');deleteList(l.name);lists.splice(ix,1);LS.set('lists',lists);rebuildCatalog();catUI();renderResults()}else{r.dataset.c=1;del.textContent='Ջնջե՞լ';del.style.width='auto';del.style.fontSize='13px'}};
     ci.appendChild(r);
   });
+  renderTrash();
   if($('v-prod')&&$('v-prod').classList.contains('on'))setTimeout(renderProd,0);
   const ch=$('supChips');ch.innerHTML='';
   if(catalog.length){
@@ -803,7 +806,7 @@ function loadCols(){
   preview();
 }
 ['m_name','m_code','m_cat','m_stk'].forEach(id=>$(id).onchange=preview);
-$('m_sup').addEventListener('input',()=>{$('m_merge').dataset.touched='';preview()});$('m_merge').onchange=()=>{$('m_merge').dataset.touched=1};
+$('m_sup').addEventListener('input',()=>{$('m_merge').dataset.touched='';preview()});$('m_merge').onchange=()=>{$('m_merge').dataset.touched=1;preview()};
 $('m_price').onchange=guessRate;
 ['m_mk'].forEach(id=>{$(id).value=LS.get(id,$(id).value);$(id).oninput=()=>{LS.set(id,$(id).value);preview();pushSettingsSoon()}});
 function guessRate(){
@@ -827,7 +830,9 @@ function buildCat(){
   return out;
 }
 function mergeUI(n){const nm=($('m_sup').value||'').trim().toLowerCase();const ex=lists.find(l=>l.name.toLowerCase()===nm);
-  $('mergeRow').style.display=ex?'flex':'none';if(ex&&!$('m_merge').dataset.touched)$('m_merge').checked=n<ex.items.length*0.5;}
+  $('mergeRow').style.display=ex?'flex':'none';if(ex&&!$('m_merge').dataset.touched)$('m_merge').checked=true;
+  $('supWarn').innerHTML=ex?(($('m_merge').checked)?`⚠ «${esc(ex.name)}» անունով գնացուցակ արդեն կա (${ex.items.length} ապրանք)։ Նոր ապրանքները <b>կավելացվեն</b>, եղածների գները կթարմացվեն, ոչինչ չի ջնջվի։ Եթե սա այլ մատակարար է, փոխեք անունը։`
+    :`⚠ «${esc(ex.name)}» գնացուցակը (${ex.items.length} ապրանք) <b style="color:var(--bad)">ամբողջությամբ կփոխարինվի</b> նորով։ Հինը կպահվի Աղբարկղում։`):'';}
 function preview(){
   const c=buildCat();mergeUI(c.length);
   const cats={};c.forEach(x=>{if(x.c)cats[x.c]=(cats[x.c]||0)+1});
@@ -847,7 +852,7 @@ $('m_save').onclick=()=>{
     lists[ix]=Object.assign({},lists[ix],{items:old,date,mk:+$('m_mk').value||0});
   }else{
     const entry={name:nm,file:LS.get('catName',''),date,items:c,mk:+$('m_mk').value||0};
-    if(ix>=0)lists[ix]=entry;else lists.push(entry);
+    if(ix>=0){toTrash(lists[ix],'փոխարինված');lists[ix]=entry}else lists.push(entry);
   }
   LS.set('lists',lists);rebuildCatalog();
   pushList(lists.find(l=>l.name.toLowerCase()===nm.toLowerCase()));
@@ -1120,6 +1125,20 @@ function calcLen(){
 }
 $('p_len').oninput=calcLen;
 
+/* ---------- Trash for replaced / deleted price lists ---------- */
+function toTrash(l,why){const t=LS.get('trash',[]);t.unshift({l:JSON.parse(JSON.stringify(l)),why,at:new Date().toISOString()});LS.set('trash',t.slice(0,8));pushSettingsSoon()}
+function renderTrash(){
+  const t=LS.get('trash',[]),b=$('trashBox');b.innerHTML='';if(!t.length)return;
+  const d=document.createElement('details');d.innerHTML=`<summary class="note" style="cursor:pointer">🗑 Աղբարկղ (${t.length})՝ ջնջված/փոխարինված գնացուցակներ</summary>`;
+  t.forEach((x,i)=>{const r=document.createElement('div');r.className='lst';const dt=new Date(x.at);
+    r.innerHTML='<div class="n"><b></b><small></small></div><button type="button" class="btn ghost sm">Վերականգնել</button>';
+    r.querySelector('b').textContent=x.l.name;r.querySelector('small').textContent=`${x.l.items.length} ապրանք · ${x.why} ${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}${x.l.file?' · '+x.l.file:''}`;
+    r.querySelector('button').onclick=()=>{let l=x.l;let nm=l.name;if(lists.some(y=>y.name.toLowerCase()===nm.toLowerCase())){let k=2;while(lists.some(y=>y.name.toLowerCase()===(nm+' ('+k+')').toLowerCase()))k++;nm=nm+' ('+k+')'}
+      l.name=nm;lists.push(l);const tt=LS.get('trash',[]);tt.splice(i,1);LS.set('trash',tt);LS.set('lists',lists);rebuildCatalog();pushList(l);pushSettingsSoon();catUI();renderResults();toast(`Վերականգնվեց՝ «${nm}»`)};
+    d.appendChild(r)});
+  b.appendChild(d);
+}
+
 /* ---------- Products page ---------- */
 let pFilter=LS.get('pFilter',''), pLimit=50, pOpen=null;
 const _pushT={};
@@ -1214,7 +1233,7 @@ const CLOUD={sb:null,user:null,offline:false};
 const cloudOn=()=>!!(CLOUD.sb&&CLOUD.user&&!CLOUD.offline);
 function cst(state,txt){const e=$('cloudSt');e.className='cst '+(state||'');e.textContent=txt||'';}
 function cloudErr(e,where){console.warn(where,e);cst('err','Սխալ');toast('Համաժամեցման սխալ'+(e&&e.message?': '+e.message.slice(0,60):''))}
-function settingsData(){return {prices,sign:$('sign').value,mk:$('m_mk').value,usdRate:LS.get('usdRate',390)}}
+function settingsData(){return {prices,sign:$('sign').value,mk:$('m_mk').value,usdRate:LS.get('usdRate',390),trash:LS.get('trash',[])}}
 let _setT=0;
 function pushSettingsSoon(){if(!cloudOn())return;clearTimeout(_setT);_setT=setTimeout(async()=>{cst('busy','…');
   const {error}=await CLOUD.sb.from('pm_settings').upsert({user_id:CLOUD.user.id,data:settingsData(),updated_at:new Date().toISOString()});
@@ -1238,6 +1257,7 @@ async function pullAll(){
       if(d.sign!=null){$('sign').value=d.sign;LS.set('sign',d.sign)}
       if(d.mk!=null){$('m_mk').value=d.mk;LS.set('m_mk',d.mk)}
       if(d.usdRate){LS.set('usdRate',d.usdRate)}
+      if(Array.isArray(d.trash)&&d.trash.length){const loc=LS.get('trash',[]);const all=d.trash.concat(loc.filter(x=>!d.trash.some(y=>y.at===x.at)));LS.set('trash',all.sort((a,b)=>b.at.localeCompare(a.at)).slice(0,8));catUI()}
       renderPrices();renderItems();calcQuote();
     }else pushSettingsSoon();
     // first time: move locally saved quotes to the cloud

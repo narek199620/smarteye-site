@@ -4,10 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "tools/calc-app/**"
-      - "app/**"
-      - "desktop/**"
-      - ".github/workflows/android-apk.yml"
+      # build only when a new app version is released (bump app/VERSION)
+      - "app/VERSION"
   workflow_dispatch:
 
 permissions:
