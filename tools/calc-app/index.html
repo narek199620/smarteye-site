@@ -32,6 +32,14 @@
 .cartrow{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid #16295299}
 .cartrow .n{flex:1;font-size:13.5px;line-height:1.25}.cartrow .n small{display:block;color:var(--mut);font-size:11.5px}
 .cartrow .spec{display:block;width:100%;margin:3px 0 1px;padding:4px 6px;font-size:12px;color:var(--acc2);background:transparent;border:1px dashed #2a4580;border-radius:6px}
+.stb{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#0a1736;color:var(--mut);font-weight:700;font-size:14px}
+.stb.ok{background:#3ddc9733;color:var(--ok);border-color:var(--ok)}.stb.no{background:#ff5d6c33;color:var(--bad);border-color:var(--bad)}
+.cartrow.missing .n{opacity:.6;text-decoration:line-through}
+.askcard{background:#0a1736;border:1px solid var(--line);border-radius:11px;padding:10px;margin-top:10px}
+.askpre{white-space:pre-wrap;font-family:inherit;font-size:13px;margin:6px 0 0;user-select:all}
+.cartrow{flex-wrap:wrap}.cartrow .n{flex:1 1 calc(100% - 40px);min-width:0;word-break:break-word}
+.cartrow .ctl{flex:1 1 100%;display:flex;align-items:center;justify-content:flex-end;gap:6px;padding-left:36px}
+.cartrow .ctl .lt{flex:1;color:var(--mut);font-size:12px}
 .cartrow .pin{width:84px;text-align:right;padding:8px 6px;font-size:14px}
 :root{--bg:#07122b;--card:#0e1f45;--line:#1d3466;--txt:#e8eefc;--mut:#8ea3cf;--acc:#2f8cff;--acc2:#5fd0ff;--ok:#3ddc97;--warn:#ffb547;--bad:#ff5d6c}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -101,6 +109,10 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <div id="results"></div>
     </div>
     <div id="cart" style="margin-top:8px"></div>
+    <div id="askBox" style="display:none">
+      <button class="btn ghost" id="askBtn" type="button">📨 Հարցնել մատակարարին (առկայություն)</button>
+      <div id="askPanel" style="display:none"></div>
+    </div>
   </div>
   <div class="card">
     <h2>Աշխատանքներ (ծառայություններ)</h2>
@@ -406,7 +418,7 @@ function renderResults(){
     r.querySelector('.n').textContent=it.n; if(lists.length>1&&!supFilter){const t=document.createElement('span');t.className='tag';t.textContent=it.s;r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.textContent=[it.sp,it.k,it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
     r.querySelector('button').onclick=()=>{
       const ex=cart.find(c=>c.n===it.n&&c.k===it.k);
-      if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,q:1});
+      if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,q:1,s:it.s||'',st:''});
       LS.set('cart',cart);renderCart();calcQuote();toast('Ավելացվեց ✓');
     };
     box.appendChild(r);
@@ -416,25 +428,71 @@ $('search').oninput=renderResults;
 $('search').onkeydown=e=>{if(e.key==='Enter'){const b=document.querySelector('#results .res button');if(b){b.click();$('search').select()}}};
 function renderCart(){
   const box=$('cart');box.innerHTML='';
-  if(!cart.length)return;
+  $('askBox').style.display=cart.length?'block':'none';
+  if(!cart.length){$('askPanel').style.display='none';return}
   const h=document.createElement('div');h.className='sub';h.style.margin='6px 0 0';h.textContent='Ընտրված ապրանքներ';box.appendChild(h);
   cart.forEach((c,ix)=>{
     const r=document.createElement('div');r.className='cartrow';
-    r.innerHTML=`<div class="n"></div>`;
+    r.innerHTML=`<button type="button" class="stb"></button><div class="n"></div>`;
+    const sb=r.querySelector('.stb');
+    const paint=()=>{const m={ok:['✓','ok','Առկա է'],no:['✗','no','Առկա չէ'],'':['?','','Չի ստուգված']}[c.st||''];sb.textContent=m[0];sb.className='stb '+m[1];sb.title=m[2];r.classList.toggle('missing',c.st==='no')};paint();
+    sb.onclick=()=>{c.st=c.st===''||!c.st?'ok':c.st==='ok'?'no':'';LS.set('cart',cart);paint();stockNote()};
     r.querySelector('.n').textContent=c.n;
+    if(c.s&&lists.length>1){const t=document.createElement('span');t.className='tag';t.textContent=c.s;r.querySelector('.n').prepend(t)}
     if(c.d===undefined)c.d=specOf(c.n+' '+(c.k||''));
     const di=document.createElement('input');di.type='text';di.className='spec';di.value=c.d;di.placeholder='Տեսակ, MP… (օր․ IP տեսախցիկ · 4MP)';
     di.oninput=()=>{c.d=di.value;LS.set('cart',cart);calcQuote()};r.querySelector('.n').appendChild(di);
-    const sm=document.createElement('small');r.querySelector('.n').appendChild(sm);
+    const sm=document.createElement('small');sm.className='lt';
     const upd=()=>{sm.textContent=`${c.q} × ${fmt(c.p)} = ${fmt(c.q*c.p)}`};upd();
     const st=stepper(c.q,v=>{c.q=v;upd();if(v===0){cart.splice(ix,1);LS.set('cart',cart);renderCart()}else LS.set('cart',cart);calcQuote()});
     st.querySelector('input').style.width='40px';
     const pin=document.createElement('input');pin.type='number';pin.inputMode='numeric';pin.className='pin';pin.value=c.p;pin.title='Գին';
     pin.oninput=()=>{c.p=+pin.value||0;upd();LS.set('cart',cart);calcQuote()};
-    r.appendChild(pin);r.appendChild(st);
+    const ctl=document.createElement('div');ctl.className='ctl';ctl.appendChild(sm);ctl.appendChild(pin);ctl.appendChild(st);r.appendChild(ctl);
     box.appendChild(r);
   });
+  const sn=document.createElement('div');sn.id='stockNote';sn.className='note';box.appendChild(sn);stockNote();
 }
+function stockNote(){
+  const e=$('stockNote');if(!e)return;
+  const no=cart.filter(c=>c.st==='no').length, ok=cart.filter(c=>c.st==='ok').length, un=cart.length-no-ok;
+  e.innerHTML=`Սեղմեք <b>?</b> նշանին՝ առկայությունը նշելու համար (✓ կա, ✗ չկա)։ `+(ok||no?`<br>Առկա՝ ${ok} · Չկա՝ <span style="color:${no?'var(--bad)':'inherit'}">${no}</span> · Չստուգված՝ ${un}`:'');
+}
+const modelOf=c=>(c.k&&c.k.length>3&&!/^[A-Z]?\d{1,3}$/i.test(c.k)?c.k:String(c.n).split(' — ')[0]).trim();
+function askText(items){
+  let t='Բարև Ձեզ։ Խնդրում եմ հաստատել առկայությունը և գինը․\n\n';
+  items.forEach((c,i)=>{t+=`${i+1}. ${modelOf(c)} — ${c.q} հատ\n`});
+  t+='\nՇնորհակալություն,\n'+(($('sign').value||'SmartEye System').split('·')[0].trim());
+  return t;
+}
+$('askBtn').onclick=()=>{
+  const pnl=$('askPanel');
+  if(pnl.style.display==='block'){pnl.style.display='none';return}
+  pnl.innerHTML='';
+  const groups={};cart.filter(c=>c.q>0&&c.st!=='ok').forEach(c=>{(groups[c.s||'Մատակարար']=groups[c.s||'Մատակարար']||[]).push(c)});
+  const keys=Object.keys(groups);
+  if(!keys.length){pnl.innerHTML='<div class="note">Բոլոր ապրանքները արդեն նշված են որպես առկա ✓</div>';pnl.style.display='block';return}
+  keys.forEach(k=>{
+    const t=askText(groups[k]);
+    const d=document.createElement('div');d.className='askcard';
+    d.innerHTML=`<div class="sub" style="color:var(--acc2);font-weight:600"></div><pre class="askpre"></pre>
+      <div class="share" style="grid-template-columns:repeat(4,1fr)">
+        <a class="sh tg" target="_blank" rel="noopener">Telegram</a><a class="sh vb" target="_blank" rel="noopener">Viber</a><a class="sh wa" target="_blank" rel="noopener">WhatsApp</a><a class="sh cp" href="#" style="background:#2a3f6e">Պատճենել</a>
+      </div>`;
+    d.querySelector('.sub').textContent=k+' — '+groups[k].length+' ապրանք';
+    d.querySelector('pre').textContent=t;
+    const [tg,vb,wa,cp]=d.querySelectorAll('a');
+    tg.href='https://t.me/share/url?url='+encodeURIComponent(' ')+'&text='+encodeURIComponent(t);
+    vb.href='viber://forward?text='+encodeURIComponent(t);
+    wa.href='https://wa.me/?text='+encodeURIComponent(t);
+    const cpy=()=>{try{navigator.clipboard.writeText(t).then(()=>toast('Պատճենված է ✓'),()=>{})}catch(e){}};
+    vb.addEventListener('click',cpy);
+    cp.onclick=e=>{e.preventDefault();cpy()};
+    pnl.appendChild(d);
+  });
+  const n=document.createElement('div');n.className='note';n.textContent='Պատասխանը ստանալուց հետո նշեք ✓ կամ ✗ յուրաքանչյուր ապրանքի մոտ։ Եթե մատակարարը PDF ուղարկի, կարող եք այն ուղարկել Claude-ին ստուգելու։';pnl.appendChild(n);
+  pnl.style.display='block';
+};
 
 /* ---------- Product spec from model / description ---------- */
 function specOf(txt){
@@ -701,7 +759,7 @@ $('copyQ').onclick=async()=>{
   try{await navigator.clipboard.writeText(t);toast('Պատճենված է ✓ — տեղադրեք Viber/Telegram');pre.style.display='none'}
   catch(e){pre.style.display='block';toast('Սեղմած պահեք տեքստը և պատճենեք')}
 };
-$('resetQ').onclick=()=>{qty={};customs=[];cart=[];LS.set('qty',qty);LS.set('customs',customs);LS.set('cart',cart);renderCart();$('disc').value=0;renderItems();renderCustoms();calcQuote();$('qtext').style.display='none'};
+$('resetQ').onclick=()=>{$('askPanel').style.display='none';qty={};customs=[];cart=[];LS.set('qty',qty);LS.set('customs',customs);LS.set('cart',cart);renderCart();$('disc').value=0;renderItems();renderCustoms();calcQuote();$('qtext').style.display='none'};
 
 /* ---------- Prices tab ---------- */
 function renderPrices(){
