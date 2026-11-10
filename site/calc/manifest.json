@@ -1,6 +1,6 @@
 {
-  "name": "SmartEye Հաշվիչ",
-  "short_name": "SmartEye",
+  "name": "SmartEye Price Manager",
+  "short_name": "Price Manager",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
