@@ -1,4 +1,5 @@
 User-agent: *
 Disallow: /send.php
 Disallow: /tg-test.php
+Disallow: /calc/
 Sitemap: https://smarteye.am/sitemap.xml

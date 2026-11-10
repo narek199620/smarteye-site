@@ -1108,6 +1108,8 @@ def build():
     shutil.copytree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "brand"), os.path.join(OUT, "img", "brand"), dirs_exist_ok=True)
     shutil.copy(os.path.join(os.path.dirname(__file__), "smarteye-presentation.pdf"), os.path.join(OUT, "smarteye-presentation.pdf"))
     shutil.copy(os.path.join(os.path.dirname(__file__), "smarteye.css"), os.path.join(OUT, "css", "smarteye.css"))
+    # private calculator app for the owner (not linked, not indexed): smarteye.am/calc/
+    shutil.copytree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "calc-app"), os.path.join(OUT, "calc"), dirs_exist_ok=True)
 
     site_desc = "SmartEye System — տեսախցիկների, ազդանշանային համակարգերի և լոկալ ցանցերի տեղադրում Երևանում և Արագածոտնի մարզում։ խանութների ավտոմատացում, անվճար խորհրդատվություն։"
 
@@ -1404,7 +1406,7 @@ def seo_files():
             f.write(f"  <url><loc>{loc}</loc><lastmod>{datetime.date.today().isoformat()}</lastmod></url>\n")
         f.write("</urlset>\n")
     with open(os.path.join(OUT, "robots.txt"), "w") as f:
-        f.write("User-agent: *\nDisallow: /send.php\nDisallow: /tg-test.php\nSitemap: https://smarteye.am/sitemap.xml\n")
+        f.write("User-agent: *\nDisallow: /send.php\nDisallow: /tg-test.php\nDisallow: /calc/\nSitemap: https://smarteye.am/sitemap.xml\n")
     shutil.copy(os.path.join(os.path.dirname(__file__), "brand", "logo-icon.svg"), os.path.join(OUT, "img", "favicon.svg"))
     shutil.copy(os.path.join(os.path.dirname(__file__), "favicon.png"), os.path.join(OUT, "img", "favicon.png"))
 
