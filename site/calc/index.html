@@ -1006,7 +1006,8 @@ $('m_save').onclick=()=>{
     const entry={name:nm,file:LS.get('catName',''),date,items:c,mk:+$('m_mk').value||0};
     if(ix>=0){toTrash(lists[ix],'փոխարինված');lists[ix]=entry}else lists.push(entry);
   }
-  {const L0=lists.find(l=>l.name.toLowerCase()===nm.toLowerCase());if(DISC.length&&L0)L0.disc=medDisc();}
+  {const L0=lists.find(l=>l.name.toLowerCase()===nm.toLowerCase());const sh=shops.find(x=>x.name.toLowerCase()===nm.toLowerCase());
+   if(DISC.length&&L0){L0.disc=medDisc();if(sh){sh.disc=L0.disc;saveShops()}}else if(L0&&!L0.disc&&sh&&sh.disc)L0.disc=sh.disc;}
   LS.set('lists',lists);rebuildCatalog();
   pushList(lists.find(l=>l.name.toLowerCase()===nm.toLowerCase()));
   let upd=0;
@@ -1325,7 +1326,7 @@ function renderShops(){
   shops.forEach((sh,i)=>{
     const r=document.createElement('div');r.className='lst';
     r.innerHTML='<div class="n"><b></b><small></small></div><button type="button" class="btn ghost sm">✎</button><button class="del" type="button">×</button>';
-    r.querySelector('b').textContent=sh.name;r.querySelector('small').textContent=[sh.phone,sh.tg?'@'+sh.tg.replace(/^@/,''):'',sh.note].filter(Boolean).join(' · ');
+    r.querySelector('b').textContent=sh.name;r.querySelector('small').textContent=[sh.disc?'զեղչ '+sh.disc+'%':'',sh.phone,sh.tg?'@'+sh.tg.replace(/^@/,''):'',sh.note].filter(Boolean).join(' · ');
     r.querySelector('.btn').onclick=()=>shopForm(i);
     const d=r.querySelector('.del');d.onclick=()=>{if(!d.dataset.c){d.dataset.c=1;d.textContent='Ջնջե՞լ';d.style.width='auto';d.style.fontSize='13px';return}shops.splice(i,1);saveShops();renderShops()};
     b.appendChild(r);
@@ -1335,13 +1336,15 @@ function shopForm(i){
   const f=$('shopForm');const sh=i!=null?shops[i]:{name:'',phone:'',tg:'',note:''};
   f.innerHTML=`<label>Անուն<input type="text" class="s_n" placeholder="օր․ Gloria, DGcomputers, Arena"></label>
     <div class="grid2"><label>Հեռախոս / Viber / WhatsApp<input type="tel" class="s_p" placeholder="0XX XXXXXX"></label><label>Telegram<input type="text" class="s_t" placeholder="@username"></label></div>
+    <label>Իմ զեղչը այս խանութում %<input type="number" inputmode="decimal" class="s_d" placeholder="օր․ 8"></label>
     <label>Նշում<input type="text" class="s_o" placeholder="օր․ Hikvision, մենեջեր Արամ"></label>
     <button type="button" class="btn s_save">${i!=null?'Պահպանել':'Ավելացնել'}</button>`;
   f.style.display='block';const q=c=>f.querySelector(c);
-  q('.s_n').value=sh.name;q('.s_p').value=sh.phone||'';q('.s_t').value=sh.tg||'';q('.s_o').value=sh.note||'';
+  q('.s_d').value=sh.disc||'';q('.s_n').value=sh.name;q('.s_p').value=sh.phone||'';q('.s_t').value=sh.tg||'';q('.s_o').value=sh.note||'';
   q('.s_save').onclick=()=>{const n=q('.s_n').value.trim();if(!n){toast('Գրեք անունը');return}
-    const o={name:n,phone:q('.s_p').value.trim(),tg:q('.s_t').value.trim().replace(/^@/,''),note:q('.s_o').value.trim()};
-    if(i!=null)shops[i]=o;else shops.push(o);saveShops();f.style.display='none';renderShops();renderProj();toast('Պահպանվեց ✓')};
+    const o={name:n,disc:+q('.s_d').value||0,phone:q('.s_p').value.trim(),tg:q('.s_t').value.trim().replace(/^@/,''),note:q('.s_o').value.trim()};
+    if(i!=null)shops[i]=o;else shops.push(o);saveShops();
+    lists.filter(l=>l.name.toLowerCase()===o.name.toLowerCase()).forEach(l=>{if(o.disc&&l.disc!==o.disc){l.disc=o.disc;pushList(l)}});LS.set('lists',lists);rebuildCatalog();catUI();f.style.display='none';renderShops();renderProj();toast('Պահպանվեց ✓')};
 }
 $('shopAdd').onclick=()=>{const f=$('shopForm');if(f.style.display==='block'){f.style.display='none';return}shopForm(null)};
 
@@ -1440,7 +1443,7 @@ $('pasteShop').onclick=()=>{
 };
 
 /* ---------- AMS (ams.am) online import ---------- */
-$('amsDisc').value=LS.get('amsDisc','');
+$('amsDisc').value=LS.get('amsDisc','')||((shops.find(x=>x.name==='AMS')||{}).disc||'');
 $('amsDisc').oninput=()=>{LS.set('amsDisc',$('amsDisc').value);pushSettingsSoon()};
 $('amsGo').onclick=async()=>{
   if(!cloudOn()){toast('Պետք է մուտք գործել (smarteye.am/calc կամ հավելված)');$('amsRes').textContent='Այս ֆունկցիան աշխատում է միայն մուտք գործած վիճակում՝ smarteye.am/calc-ում կամ հավելվածում։';return}
