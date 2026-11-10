@@ -17,7 +17,10 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
-.arw{background:none;border:none;color:var(--acc2);font-size:14px;padding:0 6px;margin-left:2px;cursor:pointer;vertical-align:1px}
+.backbtn{background:#132a5a;border:1px solid var(--line);color:var(--txt);width:38px;height:38px;border-radius:50%;font-size:26px;line-height:1;padding:0 0 3px;flex:none}
+.qtypes{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;scrollbar-width:none}.qtypes::-webkit-scrollbar{display:none}
+.qtypes .chip{white-space:nowrap;flex:none}
+.res .n .arw,.arw{width:auto;height:auto;border-radius:0;background:none!important;border:none;color:var(--acc2);font-size:14px;padding:0 6px;margin-left:2px;cursor:pointer;vertical-align:1px}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:4px 0 10px}
 .tile{background:#0a1736;border:1px solid var(--line);border-radius:12px;padding:9px 4px;text-align:center;color:var(--txt);font-family:inherit;cursor:pointer}
 .tile .ic{font-size:24px;line-height:1.1}.tile .tl{font-size:11.5px;margin-top:3px;line-height:1.2}.tile .tc{font-size:11px;color:var(--mut)}
@@ -147,6 +150,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
 </head>
 <body>
 <header>
+<button type="button" id="backBtn" class="backbtn" aria-label="Հետ" style="display:none">‹</button>
 <svg width="38" height="38" viewBox="0 0 40 40"><path d="M2 20C8 10 14 6 20 6s12 4 18 14c-6 10-12 14-18 14S8 30 2 20z" fill="#0b1a3a" stroke="#2f8cff" stroke-width="2"/><circle cx="20" cy="20" r="7.5" fill="#123a8a" stroke="#5fd0ff" stroke-width="1.6"/><path d="M16.5 20.3l2.4 2.4 4.8-5" fill="none" stroke="#d9e2f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 <h1>SmartEye <span>System</span><small>Price Manager · գնահաշվարկ</small></h1>
 <span id="cloudSt" class="cst" title=""></span>
@@ -160,6 +164,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
     <div id="noCat"><div class="note" style="margin-top:0">Այստեղ գրում եք մոդելը, և գինը վերցվում է ներմուծողի գնացուցակից։ Սկզբում կցեք գնացուցակը (Excel կամ PDF)․</div><a href="#prod" class="btn" style="text-align:center;text-decoration:none">📄 Ներմուծել գնացուցակը</a></div>
     <div id="catBox" style="display:none">
       <div id="supChips" class="chips"></div>
+      <div id="qTypes" class="qtypes"></div>
       <input type="search" id="search" placeholder="Որոնել՝ մոդել, անուն…">
       <div id="results"></div>
     </div>
@@ -225,6 +230,12 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
     <h2>📄 Գնացուցակներ (մատակարարներից)</h2>
     <div class="note" style="margin-top:0">Ընտրեք Hikvision/Dahua ներմուծողի ուղարկած գնացուցակը՝ .xlsx, .xls, .csv կամ .pdf, հեռախոսից կամ Google Drive-ից (ֆայլ ընտրելիս բացեք «Drive»)։ Հետո որոնման մեջ գրում եք մոդելը, և գինը ավտոմատ դրվում է։</div>
     <label class="btn" style="text-align:center;cursor:pointer">📄 Կցել գնացուցակ (Excel / PDF)<input type="file" id="xfile" accept=".xlsx,.xls,.csv,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none"></label>
+    <details class="pform" id="amsBox" style="margin-top:10px"><summary style="cursor:pointer;color:var(--acc2);font-weight:600">🌐 Բեռնել AMS-ի կայքից (ams.am)</summary>
+      <div class="note">Ծրագիրը կարդում է ams.am-ի տեսահսկման և ցանցային բաժինների բոլոր ապրանքները՝ գնով և առկայությամբ (մոտ 1 րոպե)։ Գինը կայքինն է (վաճառքի)։ Եթե AMS-ում դիլերային զեղչ ունես, գրիր %-ը, և «Իմ գինը» կհաշվվի։</div>
+      <div class="grid2"><label class="note" style="margin:0">Իմ զեղչը AMS-ում %<input type="number" inputmode="decimal" id="amsDisc" placeholder="օր․ 15"></label><label class="note" style="margin:0">Բաժիններ<select id="amsCats"><option value="category-901,category-942">Տեսահսկում + Ցանցեր</option><option value="category-901">Միայն տեսահսկում</option></select></label></div>
+      <button type="button" class="btn" id="amsGo">⟳ Բեռնել / թարմացնել AMS-ից</button>
+      <div class="note" id="amsRes"></div>
+    </details>
     <div id="map" style="display:none;margin-top:10px">
       <div class="grid2">
         <div class="f xl"><label>Թերթ (sheet)</label><select id="m_sheet"></select></div>
@@ -575,25 +586,39 @@ function searchCatalog(qRaw,filt){if(filt===undefined)filt=supFilter;
   res.sort((a,b)=>b.hit-a.hit||b.score-a.score||a.it.p-b.it.p);
   const out=res.slice(0,60).map(x=>x.it);out.fuzzy=fuzzy;return out;
 }
-function renderResults(){
-  const q=norm($('search').value), box=$('results');box.innerHTML='';
-  if(!q){box.innerHTML='<div class="note">Գրեք մոդել կամ բառեր, օր․ «1043», «hybrid 4mp», «colorvu dome», «hdd 4tb», «nvr 8 poe»</div>';return}
-  const hits=searchCatalog(q);
-  if(!hits.length){box.innerHTML='<div class="note">Չի գտնվել։ Փորձեք այլ բառ կամ մոդելի մի մասը (օր․ 1043)</div>';return}
-  if(hits.fuzzy){const n=document.createElement('div');n.className='note';n.style.marginTop='0';n.textContent='Ճշգրիտ համընկնում չկա, մոտ արդյունքներ․';box.appendChild(n)}
-  hits.forEach(it=>{
+function resRow(it){
     const r=document.createElement('div');r.className='res';
     r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
     {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
       if(parts.length>1){const ar=document.createElement('button');ar.type='button';ar.className='arw';ar.textContent='▸';mb.appendChild(ar);const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);ar.onclick=e=>{e.stopPropagation();nd.classList.toggle('open');ar.textContent=nd.classList.contains('open')?'▾':'▸'}}}
-    if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
+    if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1&&it.s.toLowerCase()!==it.b.toLowerCase()?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
     r.querySelector('button').onclick=()=>{
       const ex=cart.find(c=>c.n===it.n&&c.k===it.k);
       if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,cost:it.cost,q:1,s:it.s||'',st:it.stk||''});
       LS.set('cart',cart);renderCart();calcQuote();toast('Ավելացվեց ✓');
     };
-    box.appendChild(r);
-  });
+    return r;
+}
+let qType=LS.get('qType','');
+function renderQTypes(){
+  const box=$('qTypes');if(!box)return;box.innerHTML='';
+  const pool=catalog.filter(it=>fMatch(it,supFilter));const cnt={},icon={};
+  pool.forEach(it=>{const [l,ic]=it.ty||(it.ty=typeOf(it));cnt[l]=(cnt[l]||0)+1;icon[l]=ic});
+  const keys=Object.keys(cnt).sort((a,b)=>(a==='Այլ')-(b==='Այլ')||cnt[b]-cnt[a]);
+  if(qType&&!cnt[qType])qType='';
+  if(keys.length<2)return;
+  [''].concat(keys).forEach(k=>{const b=document.createElement('button');b.type='button';b.className='chip'+(qType===k?' on':'');b.textContent=k?`${icon[k]} ${k} · ${cnt[k]}`:'Բոլոր տեսակները';
+    b.onclick=()=>{qType=k;LS.set('qType',k);renderQTypes();renderResults()};box.appendChild(b)});
+}
+function renderResults(){
+  renderQTypes();
+  const q=norm($('search').value), box=$('results');box.innerHTML='';
+  if(!q&&qType){const hits=catalog.filter(it=>fMatch(it,supFilter)&&(it.ty||(it.ty=typeOf(it)))[0]===qType).sort((a,b)=>a.p-b.p).slice(0,60);hits.forEach(it=>box.appendChild(resRow(it)));return}
+  if(!q){box.innerHTML='<div class="note">Գրեք մոդել կամ բառեր, օր․ «1043», «hybrid 4mp», «colorvu dome», «hdd 4tb», «nvr 8 poe»</div>';return}
+  const hits=searchCatalog(q).filter(it=>!qType||(it.ty||(it.ty=typeOf(it)))[0]===qType);
+  if(!hits.length){box.innerHTML='<div class="note">Չի գտնվել։ Փորձեք այլ բառ կամ մոդելի մի մասը (օր․ 1043)</div>';return}
+  if(hits.fuzzy){const n=document.createElement('div');n.className='note';n.style.marginTop='0';n.textContent='Ճշգրիտ համընկնում չկա, մոտ արդյունքներ․';box.appendChild(n)}
+  hits.forEach(it=>box.appendChild(resRow(it)));
 }
 $('search').oninput=renderResults;
 $('search').onkeydown=e=>{if(e.key==='Enter'){const b=document.querySelector('#results .res button');if(b){b.click();$('search').select()}}};
@@ -1397,14 +1422,39 @@ $('pasteShop').onclick=()=>{
   };
 };
 
+/* ---------- AMS (ams.am) online import ---------- */
+$('amsDisc').value=LS.get('amsDisc','');
+$('amsDisc').oninput=()=>{LS.set('amsDisc',$('amsDisc').value);pushSettingsSoon()};
+$('amsGo').onclick=async()=>{
+  if(!cloudOn()){toast('Պետք է մուտք գործել (smarteye.am/calc կամ հավելված)');$('amsRes').textContent='Այս ֆունկցիան աշխատում է միայն մուտք գործած վիճակում՝ smarteye.am/calc-ում կամ հավելվածում։';return}
+  const btn=$('amsGo');btn.disabled=true;btn.textContent='Բեռնում եմ ams.am-ից… (մոտ 1 րոպե)';$('amsRes').textContent='';
+  try{
+    const {data,error}=await CLOUD.sb.functions.invoke('ams-import',{body:{cats:$('amsCats').value.split(',')}});
+    if(error)throw error;if(!data||!data.ok)throw new Error(data&&data.error||'error');
+    const d=+$('amsDisc').value||0;
+    const items=data.items.map(x=>{const o={n:x.n,p:x.p,c:x.c||''};if(x.stk)o.stk=x.stk;if(d>0){o.r=x.p;o.cost=Math.round(x.p*(1-d/100))}return o});
+    const name='AMS';const dt=new Date();const date=`${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
+    let l=lists.find(x=>x.name.toLowerCase()===name.toLowerCase());let added=0,upd=0;
+    if(!l){l={name,file:'ams.am',date,items:[],mk:0};lists.push(l)}
+    const idx=new Map(l.items.map((it,i)=>[cmp(it.n),i]));
+    items.forEach(it=>{const k=cmp(it.n);if(idx.has(k)){const o=l.items[idx.get(k)];Object.assign(o,{p:it.p,c:it.c||o.c});if(it.stk)o.stk=it.stk;if(it.cost!=null){o.cost=it.cost;o.r=it.r}upd++}else{l.items.push(it);added++}});
+    l.date=date;l.file='ams.am';
+    if(!shops.some(x=>x.name==='AMS')){shops.push({name:'AMS',note:'Hikvision, EZVIZ · ams.am'});saveShops();renderShops()}
+    LS.set('lists',lists);rebuildCatalog();await pushList(l);catUI();renderResults();renderProd();
+    const ok=items.filter(x=>x.stk==='ok').length;
+    $('amsRes').innerHTML=`✓ ams.am՝ ${data.count} ապրանք (${ok} առկա)։ Նոր՝ ${added}, թարմացված՝ ${upd}։`;toast('AMS-ի գները թարմացվեցին ✓');
+  }catch(e){$('amsRes').textContent='Չհաջողվեց․ '+(e&&e.message||e)}
+  btn.disabled=false;btn.textContent='⟳ Բեռնել / թարմացնել AMS-ից';
+};
+
 /* ---------- Products page ---------- */
 let pFilter=LS.get('pFilter',''), pLimit=50, pOpen=null;
 const _pushT={};
 function pushListSoon(l){clearTimeout(_pushT[l.name]);_pushT[l.name]=setTimeout(()=>pushList(l),1200)}
 function esc(t){return String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-const TYPE_ICON=[[/IP տեսախց/,'📷','Տեսախցիկ'],[/Անալոգ/,'🎥','Անալոգ տեսախցիկ'],[/PTZ/,'🔄','PTZ'],[/^Տեսախց/,'📷','Տեսախցիկ'],[/NVR/,'🗄️','NVR'],[/DVR/,'📼','DVR'],[/HDD|սկավառակ/,'💾','HDD'],[/Սվիչ/,'🔌','Սվիչ'],[/Ազդանշ/,'🚨','Ազդանշան'],
+const TYPE_ICON=[[/IP տեսախց/,'📷','IP տեսախցիկ'],[/Wi-?Fi|4G/i,'📶','Wi-Fi / 4G'],[/Անալոգ/,'🎥','Անալոգ տեսախցիկ'],[/PTZ/,'🔄','PTZ'],[/^Տեսախց/,'📷','Տեսախցիկ'],[/NVR/,'🗄️','NVR'],[/DVR/,'📼','DVR'],[/HDD|սկավառակ/,'💾','HDD'],[/Սվիչ/,'🔌','Սվիչ'],[/Ազդանշ/,'🚨','Ազդանշան'],
   [/door|bell|դոմոֆ|домоф|զանգ/i,'🔔','Զանգ / դոմոֆոն'],[/lock|կողպ|замок/i,'🔐','Կողպեք'],[/switch/i,'🔌','Սվիչ'],[/nvr/i,'🗄️','NVR'],[/camera|камер/i,'📷','Տեսախցիկ'],[/micro ?sd|sd card|флеш|memory/i,'💳','Հիշողության քարտ'],[/cable|кабел|մալուխ/i,'🧵','Մալուխ'],[/power|блок|adapter|սնուց/i,'🔋','Սնուցում'],[/vacuum|пылесос/i,'🧹','Փոշեկուլ'],[/monitor|մոնիտ/i,'🖥️','Մոնիտոր']];
-function typeOf(it){const t=(it.sp||'').split(' · ')[0];const hay=t+' '+(it.c||'')+' '+it.n;for(const [re,ic,lab] of TYPE_ICON){if(re.test(t)||(!t&&re.test(hay)))return [lab,ic]}return ['Այլ','📦']}
+function typeOf(it){const t=(it.sp||'').split(' · ')[0];const hay=t+' '+(it.c||'')+' '+it.n;if((t===''||t==='Տեսախցիկ')&&/Wi-?Fi|4G/i.test(hay))return ['Wi-Fi / 4G','📶'];for(const [re,ic,lab] of TYPE_ICON){if(re.test(t)||(!t&&re.test(hay)))return [lab,ic]}return ['Այլ','📦']}
 let pType=LS.get('pType','');
 function renderTypes(base){
   const box=$('pTypes');box.innerHTML='';const cnt={},icon={};
@@ -1644,6 +1694,7 @@ $('hSearch').oninput=drawHistory;
 const views=['quote','prod','hist','tools','set','hdd','poe'];
 function show(v){
   if(!views.includes(v))v='quote';
+  $('backBtn').style.display=v==='quote'?'none':'block';
   if(v==='hdd'||v==='poe')v='tools';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v||(v==='tools'&&e.classList.contains('tools-view'))));
   if(v==='prod'){renderProd();renderProj();renderShops()}
@@ -1652,6 +1703,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{location.hash=b.dataset.v==='quote'?'':b.dataset.v;show(b.dataset.v)});
 window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+$('backBtn').onclick=()=>{if(history.length>1&&location.hash)history.back();else{location.hash='';show('quote')}};
 
 catUI();renderResults();renderCart();renderItems();renderCustoms();renderPrices();calcQuote();calcHdd();calcPoe();calcLen();
 show(location.hash.slice(1));
