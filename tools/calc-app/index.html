@@ -17,6 +17,10 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
+.res .n .mdl{display:block;font-size:15px;font-weight:700;color:var(--txt);word-break:break-word}
+.res .n .dsc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b9c6e4;font-size:12.5px;margin-top:2px}
+.res .n.open .dsc{display:block}
+.res .n small.spc{color:var(--acc2);font-size:12px;margin-top:3px}
 .cst{margin-left:auto;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px;white-space:nowrap}
 .cst:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mut)}
 .cst.ok:before{background:var(--ok)}.cst.busy:before{background:var(--warn)}.cst.err:before{background:var(--bad)}
@@ -414,8 +418,9 @@ const SYN=[
   [['wifi','вайфай','վայֆայ','wireless','անլար'],['wi-fi','wifi','wireless']],
   [['mic','микрофон','միկրոֆոն','ձայն','audio','zvuk','звук'],['միկրոֆոն','mic','audio']],
   [['ai','acusense','wizsense','ինտելեկտ','smart'],['acusense','wizsense',' ai ','smd']],
-  [['nvr','ձայնագրիչ','регистратор','reg','registrator'],['nvr','ձայնագր','регистр']],
-  [['dvr','xvr'],['dvr','xvr','ds-71','ds-72','ids-72','анал']],
+  [['nvr'],['nvr','ni-q','ni-k','ni-i','ni-m','ni-e']],
+  [['dvr','xvr'],['dvr','xvr','hghi','hqhi','huhi','hghi','hgh-','hqhi-']],
+  [['ձայնագրիչ','регистратор','reg','registrator','recorder'],['ձայնագր','регистр','nvr','dvr','xvr','recorder']],
   [['hdd','կոշտ','սկավառակ','диск','жесткий','hard','harddisk','vinch','винчестер'],['hdd','կոշտ սկավառակ','hard','жест','purple','skyhawk','purz','vx0','st1000','st2000','st3000','st4000','st6000','st8000','wd10','wd20','wd23','wd30','wd40','wd60','wd80']],
   [['switch','սվիչ','svich','свитч','коммутатор'],['սվիչ','switch','свитч','коммут','ds-3e','pfs']],
   [['poe'],['poe','-8p','-4p','-16p','/8p','/4p','/16p']],
@@ -444,6 +449,7 @@ function searchCatalog(qRaw){
       const vs=variants(w);
       let ok=vs.some(v=>it.h.includes(v));
       if(!ok&&wc.length>=3&&it.hc.includes(wc))ok=true;      // model without dashes: 2cd1043 → DS-2CD1043
+      if(ok&&it.sp&&vs.some(v=>it.sp.toLowerCase().includes(v)))score+=8;
       if(ok){hit++;score+=10;if(it.h.startsWith(w)||(it.k&&norm(it.k).startsWith(w)))score+=5}
     });
     if(hit)scored.push({it,hit,score});
@@ -463,7 +469,9 @@ function renderResults(){
   hits.forEach(it=>{
     const r=document.createElement('div');r.className='res';
     r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
-    r.querySelector('.n').textContent=it.n; if(lists.length>1&&!supFilter){const t=document.createElement('span');t.className='tag';t.textContent=it.s;r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.textContent=[it.sp,it.k,it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
+    {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
+      if(parts.length>1){const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);nd.onclick=()=>nd.classList.toggle('open')}}
+    if(lists.length>1&&!supFilter){const t=document.createElement('span');t.className='tag';t.textContent=it.s;r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
     r.querySelector('button').onclick=()=>{
       const ex=cart.find(c=>c.n===it.n&&c.k===it.k);
       if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,q:1,s:it.s||'',st:it.stk||''});
@@ -559,7 +567,7 @@ function specOf(txt){
     type=m[1]==='IPC'?'IP տեսախցիկ':'Անալոգ (HDCVI) տեսախցիկ';form={HFW:'Bullet',HDW:'Turret',HDBW:'Dome',HDPW:'Dome',EW:'Fisheye',PFW:'Bullet',PDW:'Dome'}[m[2]]||'';
     if(+m[4]>0)mp=m[4]==='8'?'8MP (4K)':m[4]+'MP';
     if(/-LED|FULL.?COLOR|-PV\b|TIOC/.test(u))extra.push('Full-color');
-  }else if((m=u.match(/DS-7[6-9](\d\d)N|NVR\d\d(\d\d)|DHI-NVR\d\d(\d\d)/))){
+  }else if((m=u.match(/DS-7[1-9](\d\d)NI|NVR\d\d(\d\d)|DHI-NVR\d\d(\d\d)/))){
     type='NVR (IP ձայնագրիչ)';const ch=+(m[1]||m[2]||m[3]);if(ch)extra.push(ch+' կանալ');
   }else if((m=u.match(/I?DS-7[1-2](\d\d)H|XVR\d\d(\d\d)|DVR\d\d(\d\d)/))){
     type='DVR (անալոգ ձայնագրիչ)';const ch=+(m[1]||m[2]||m[3]);if(ch)extra.push(ch+' կանալ');
