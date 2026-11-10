@@ -145,7 +145,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <div id="results"></div>
     </div>
     <div id="cart" style="margin-top:8px"></div>
-    <div id="askBox" style="display:none">
+    <div id="askBox">
       <button class="btn ghost" id="askBtn" type="button">📨 Հարցնել մատակարարին (առկայություն)</button>
       <div id="askPanel" style="display:none"></div>
     </div>
@@ -548,7 +548,7 @@ $('search').oninput=renderResults;
 $('search').onkeydown=e=>{if(e.key==='Enter'){const b=document.querySelector('#results .res button');if(b){b.click();$('search').select()}}};
 function renderCart(){
   const box=$('cart');box.innerHTML='';
-  $('askBox').style.display=cart.length?'block':'none';
+
   if(!cart.length){$('askPanel').style.display='none';return}
   const h=document.createElement('div');h.className='sub';h.style.margin='6px 0 0';h.textContent='Ընտրված ապրանքներ';box.appendChild(h);
   cart.forEach((c,ix)=>{
@@ -593,6 +593,7 @@ function askText(items){
   return t;
 }
 $('askBtn').onclick=()=>{
+  if(!cart.length){toast('Նախ ավելացրեք ապրանքներ գնահաշվարկին (որոնումից)');$('search').focus();return}
   const pnl=$('askPanel');
   if(pnl.style.display==='block'){pnl.style.display='none';return}
   pnl.innerHTML='';
