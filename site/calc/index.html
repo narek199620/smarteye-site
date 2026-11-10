@@ -307,7 +307,7 @@ $('addCustom').onclick=()=>{customs.push({name:'',q:1,p:0});LS.set('customs',cus
 let lists = LS.get('lists', null);   // [{name,file,date,items:[{n,p,k,c}]}]
 if(!lists){const old=LS.get('catalog',[]);lists=old.length?[{name:LS.get('catName','Գնացուցակ').replace(/\.[^.]+$/,''),file:LS.get('catName',''),date:'',items:old}]:[];LS.set('lists',lists)}
 let catalog=[]; let supFilter=LS.get('supFilter','');
-function rebuildCatalog(){catalog=[];lists.forEach(l=>l.items.forEach(it=>catalog.push(Object.assign({s:l.name},it))));if(supFilter&&!lists.some(l=>l.name===supFilter))supFilter=''}
+function rebuildCatalog(){catalog=[];lists.forEach(l=>l.items.forEach(it=>{const o=Object.assign({s:l.name},it);o.sp=specOf(o.n+' '+(o.k||'')+' '+(o.c||''));o.h=norm(o.n+' '+(o.k||'')+' '+(o.c||'')+' '+o.sp)+' ';o.hc=o.h.replace(/[^a-z0-9а-яա-ֆ]/g,'');catalog.push(o)}));if(supFilter&&!lists.some(l=>l.name===supFilter))supFilter=''}
 rebuildCatalog();
 let cart = LS.get('cart', []);         // [{n,p,q,c}]
 const norm=s=>String(s??'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -339,25 +339,74 @@ function catUI(){
       b.onclick=()=>{supFilter=nm;LS.set('supFilter',nm);catUI();renderResults()};ch.appendChild(b)});
   }
 }
+
+/* ---------- Smart search ---------- */
+const SYN=[
+  [['hybrid','hibrid','hibryd','հիբրիդ','гибрид','hybridlight','duallight'],['hybrid light','hybrid','dual light','-li ','-liu','-lis','-il ']],
+  [['camera','kamera','tesaxcik','tesakhcik','տեսախցիկ','տեսախց','камера','камеры','cam'],['տեսախց','camera','камер','ipc-','ds-2cd','ds-2ce','hwi-','hwt-','hac-']],
+  [['ip'],['ip տեսախց','ipc-','ds-2cd','hwi-',' ip ']],
+  [['analog','analogային','անալոգ','аналог','turbo','hdcvi','ahd','tvi'],['անալոգ','analog','ds-2ce','hac-','hwt-','turbo','hdcvi']],
+  [['colorvu','color','колор','գունավոր','gunavor','цвет','цветная','fullcolor'],['colorvu','full-color','full color','գունավոր','цвет']],
+  [['bullet','цилиндр','цилиндрическая','drsi','դրսի','улица'],['bullet','цилиндр']],
+  [['dome','купол','купольная','gmbet','գմբեթ'],['dome','купол']],
+  [['turret','turel','турель','eyeball'],['turret','eyeball','турел']],
+  [['ptz','պտտվող','поворотная','speeddome'],['ptz','speed dome','ds-2de','sd4','sd2','sd3','sd5']],
+  [['wifi','вайфай','վայֆայ','wireless','անլար'],['wi-fi','wifi','wireless']],
+  [['mic','микрофон','միկրոֆոն','ձայն','audio','zvuk','звук'],['միկրոֆոն','mic','audio']],
+  [['ai','acusense','wizsense','ինտելեկտ','smart'],['acusense','wizsense',' ai ','smd']],
+  [['nvr','ձայնագրիչ','регистратор','reg','registrator'],['nvr','ձայնագր','регистр']],
+  [['dvr','xvr'],['dvr','xvr','ds-71','ds-72','ids-72','анал']],
+  [['hdd','կոշտ','սկավառակ','диск','жесткий','hard','harddisk','vinch','винчестер'],['hdd','կոշտ սկավառակ','hard','жест','purple','skyhawk','purz','vx0','st1000','st2000','st3000','st4000','st6000','st8000','wd10','wd20','wd23','wd30','wd40','wd60','wd80']],
+  [['switch','սվիչ','svich','свитч','коммутатор'],['սվիչ','switch','свитч','коммут','ds-3e','pfs']],
+  [['poe'],['poe','-8p','-4p','-16p','/8p','/4p','/16p']],
+  [['cable','մալուխ','malux','кабель','utp','ftp'],['cable','кабел','utp','մալուխ','cat5','cat6']],
+  [['monitor','մոնիտոր','монитор'],['monitor','монит','մոնիտ']],
+  [['alarm','ազդանշան','signal','сигнализация','охрана','axpro'],['ազդանշ','alarm','ax pro','axpro','охран','ds-pw']],
+  [['power','սնուցում','blok','блок','адаптер','adapter'],['power','блок','адаптер','adapter','սնուց','12v']],
+];
+function variants(w){
+  let m;
+  if((m=w.match(/^(\d{1,2})(mp|մպ|мп|mpx|megapixel)?$/))&&m[2])return [m[1]+'mp',m[1]+' mp',m[1]+'мп'];
+  if((m=w.match(/^(\d{1,2})(tb|тб)$/)))return [m[1]+'tb',m[1]+' tb',m[1]+'тб'];
+  for(const [keys,vals] of SYN){if(keys.some(k=>k===w||(w.length>=4&&k.startsWith(w))))return [w].concat(vals)}
+  return [w];
+}
+function searchCatalog(qRaw){
+  // join "4 mp" → "4mp", "2 tb" → "2tb"
+  const q=qRaw.replace(/(\d)\s+(mp|մպ|мп|tb|тб)\b/g,'$1$2');
+  const words=q.split(' ').filter(Boolean);
+  const pool=catalog.filter(it=>!supFilter||it.s===supFilter);
+  const scored=[];
+  pool.forEach(it=>{
+    let hit=0,score=0;
+    words.forEach(w=>{
+      const wc=w.replace(/[^a-z0-9а-яա-ֆ]/g,'');
+      const vs=variants(w);
+      let ok=vs.some(v=>it.h.includes(v));
+      if(!ok&&wc.length>=3&&it.hc.includes(wc))ok=true;      // model without dashes: 2cd1043 → DS-2CD1043
+      if(ok){hit++;score+=10;if(it.h.startsWith(w)||(it.k&&norm(it.k).startsWith(w)))score+=5}
+    });
+    if(hit)scored.push({it,hit,score});
+  });
+  let res=scored.filter(x=>x.hit===words.length);
+  let fuzzy=false;
+  if(!res.length&&words.length>1){res=scored;fuzzy=true}
+  res.sort((a,b)=>b.hit-a.hit||b.score-a.score||a.it.p-b.it.p);
+  const out=res.slice(0,60).map(x=>x.it);out.fuzzy=fuzzy;return out;
+}
 function renderResults(){
   const q=norm($('search').value), box=$('results');box.innerHTML='';
-  if(!q){box.innerHTML='<div class="note">Գրեք առնվազն 1 տառ որոնելու համար (օր․ 4MP, ColorVu, DS-2CD, NVR)</div>';return}
-  const words=q.split(' ');
-  const SYN={hdd:['hdd','hard','жест','կոշտ','սկավառակ','disk','purple','skyhawk','purz','wd','seagate','st1000','st2000','st4000','toshiba'],
-    'կոշտ':['hdd','hard','жест','կոշտ'],nvr:['nvr','ni-','nvr4','рег','ձայնագր'],dvr:['dvr','hgh','xvr','рег'],
-    'սվիչ':['switch','свитч','коммут','սվիչ','poe'],switch:['switch','свитч','коммут','սվիչ'],
-    'մալուխ':['cable','кабел','utp','մալուխ','cat'],cable:['cable','кабел','utp','մալուխ'],
-    'տեսախցիկ':['camera','камер','cam','տեսախց','ipc','ds-2cd','ds-2ce'],camera:['camera','камер','тесах','ipc','ds-2cd','ds-2ce'],
-    'մոնիտոր':['monitor','монит','մոնիտ'],'ազդանշան':['alarm','ax ','охран','ազդանշ']};
-  const hits=catalog.filter(it=>{if(supFilter&&it.s!==supFilter)return false;const h=norm(it.n+' '+(it.k||'')+' '+(it.c||''));return words.every(w=>h.includes(w)||(SYN[w]||[]).some(x=>h.includes(x)))}).slice(0,60);
-  if(!hits.length){box.innerHTML='<div class="note">Չի գտնվել</div>';return}
+  if(!q){box.innerHTML='<div class="note">Գրեք մոդել կամ բառեր, օր․ «1043», «hybrid 4mp», «colorvu dome», «hdd 4tb», «nvr 8 poe»</div>';return}
+  const hits=searchCatalog(q);
+  if(!hits.length){box.innerHTML='<div class="note">Չի գտնվել։ Փորձեք այլ բառ կամ մոդելի մի մասը (օր․ 1043)</div>';return}
+  if(hits.fuzzy){const n=document.createElement('div');n.className='note';n.style.marginTop='0';n.textContent='Ճշգրիտ համընկնում չկա, մոտ արդյունքներ․';box.appendChild(n)}
   hits.forEach(it=>{
     const r=document.createElement('div');r.className='res';
     r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}</div><button type="button">+</button>`;
-    r.querySelector('.n').textContent=it.n; if(lists.length>1&&!supFilter){const t=document.createElement('span');t.className='tag';t.textContent=it.s;r.querySelector('.n').prepend(t)} if(it.k||it.c){const sm=document.createElement('small');sm.textContent=[it.k,it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
+    r.querySelector('.n').textContent=it.n; if(lists.length>1&&!supFilter){const t=document.createElement('span');t.className='tag';t.textContent=it.s;r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.textContent=[it.sp,it.k,it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
     r.querySelector('button').onclick=()=>{
       const ex=cart.find(c=>c.n===it.n&&c.k===it.k);
-      if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:specOf(it.n+' '+(it.k||'')+' '+(it.c||'')),p:it.p,q:1});
+      if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,q:1});
       LS.set('cart',cart);renderCart();calcQuote();toast('Ավելացվեց ✓');
     };
     box.appendChild(r);
@@ -419,6 +468,7 @@ function specOf(txt){
   if(!mp&&(m=t.match(/(\d{1,2}(?:\.\d)?)\s?(MP|Мп|Мпикс|մպ)/i)))mp=m[1]+'MP';
   if(!form){if(/BULLET|ЦИЛИНДР/.test(u))form='Bullet';else if(/TURRET|EYEBALL/.test(u))form='Turret';else if(/\bDOME\b|КУПОЛ/.test(u))form='Dome';}
   if(!extra.includes('ColorVu')&&/COLORVU/.test(u))extra.push('ColorVu');
+  if(type.includes('տեսախց')&&/-LI(U|S|SU)?\b|-IL\b|HYBRID|DUAL.?LIGHT/.test(u))extra.push('Hybrid Light');
   if((m=u.match(/[-\/](\d{1,2})P\b/)))extra.push(m[1]+' PoE');
   if(/WI-?FI|WIRELESS/.test(u)&&type.includes('տեսախց'))extra.push('Wi-Fi');
   if(/MIC|AUDIO|-S\b|LIS|-IS\b|-SU\b|-AS\b/.test(u)&&type.includes('տեսախց'))extra.push('միկրոֆոն');
