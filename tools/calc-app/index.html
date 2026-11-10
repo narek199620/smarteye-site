@@ -17,6 +17,15 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
+.pfbtn{display:block;margin:10px auto 0;background:transparent;border:1px dashed #3a5aa0;color:var(--mut);border-radius:20px;padding:6px 14px;font-family:inherit;font-size:13px}
+.pfbox{background:#0a1736;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:10px}
+.pfbox .pft{border-top:1px solid var(--line);margin-top:4px;padding-top:8px;font-size:16px}
+.prow{display:none;flex:1 1 100%;align-items:center;gap:8px;padding-left:36px;font-size:12px;color:var(--mut)}
+body.pfon .prow{display:flex}
+.prow .cin{width:96px;padding:5px 6px;font-size:13px;text-align:right}
+.prow .mg{flex:1;text-align:right;font-weight:600}
+.mkl{display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--mut)}
+.mkl .mkin{width:62px;padding:5px;font-size:14px;text-align:center}
 .res .n .mdl{display:block;font-size:15px;font-weight:700;color:var(--txt);word-break:break-word}
 .res .n .dsc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b9c6e4;font-size:12.5px;margin-top:2px}
 .res .n.open .dsc{display:block}
@@ -151,6 +160,8 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
     <div class="sub">Ընդամենը</div>
     <div class="big" id="sum">0 ֏</div>
     <div class="sub" id="sumSub"></div>
+    <button type="button" id="pfBtn" class="pfbtn">👁 Շահույթ</button>
+    <div id="pfBox" class="pfbox" style="display:none"></div>
     <div class="share">
       <a id="shIg" class="sh ig" href="https://www.instagram.com/direct/inbox/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Instagram</a>
       <a id="shTg" class="sh tg" href="https://t.me/share/url" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.3L2.9 11.5c-1 .4-1 1.6.1 1.9l4.6 1.4 1.8 5.5c.2.7 1.1.9 1.6.4l2.6-2.4 4.8 3.5c.6.4 1.4.1 1.6-.6l3.2-15.1c.2-1-.7-1.8-1.7-1.4zM9.8 14.4l-.4 3.6-1.3-4 8.6-5.6-6.9 6z"/></svg>Telegram</a>
@@ -391,7 +402,11 @@ function catUI(){
   const ci=$('catInfo');ci.innerHTML='';
   lists.forEach((l,ix)=>{
     const r=document.createElement('div');r.className='lst';
-    r.innerHTML='<div class="n"><b></b><small></small></div><button class="del" type="button" title="Ջնջել">×</button>';
+    r.innerHTML='<div class="n"><b></b><small></small></div><label class="mkl">հավել. %<input type="number" inputmode="decimal" class="mkin"></label><button class="del" type="button" title="Ջնջել">×</button>';
+    const mi=r.querySelector('.mkin');mi.value=l.mk!=null?l.mk:'';mi.placeholder='—';
+    const hasCost=l.items.some(it=>it.cost!=null);if(!hasCost){mi.disabled=true;mi.title='Ներմուծեք նորից՝ ինքնարժեքը պահելու համար'}
+    let _mkT=0;mi.oninput=()=>{clearTimeout(_mkT);_mkT=setTimeout(()=>{const mk=+mi.value||0;l.mk=mk;l.items.forEach(it=>{if(it.cost!=null)it.p=saleOf(it.cost,mk)});
+      LS.set('lists',lists);rebuildCatalog();renderResults();pushList(l);toast(`${l.name}՝ վաճառքի գները թարմացվեցին (+${mk}%)`)},600)};
     r.querySelector('b').textContent=l.name;r.querySelector('small').textContent=`${l.items.length} ապրանք${l.date?' · '+l.date:''}${l.file?' · '+l.file:''}`;
     const del=r.querySelector('.del');
     del.onclick=()=>{if(r.dataset.c){deleteList(l.name);lists.splice(ix,1);LS.set('lists',lists);rebuildCatalog();catUI();renderResults()}else{r.dataset.c=1;del.textContent='Ջնջե՞լ';del.style.width='auto';del.style.fontSize='13px'}};
@@ -474,7 +489,7 @@ function renderResults(){
     if(lists.length>1&&!supFilter){const t=document.createElement('span');t.className='tag';t.textContent=it.s;r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
     r.querySelector('button').onclick=()=>{
       const ex=cart.find(c=>c.n===it.n&&c.k===it.k);
-      if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,q:1,s:it.s||'',st:it.stk||''});
+      if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,cost:it.cost,q:1,s:it.s||'',st:it.stk||''});
       LS.set('cart',cart);renderCart();calcQuote();toast('Ավելացվեց ✓');
     };
     box.appendChild(r);
@@ -505,6 +520,13 @@ function renderCart(){
     const pin=document.createElement('input');pin.type='number';pin.inputMode='numeric';pin.className='pin';pin.value=c.p;pin.title='Գին';
     pin.oninput=()=>{c.p=+pin.value||0;upd();LS.set('cart',cart);calcQuote()};
     const ctl=document.createElement('div');ctl.className='ctl';ctl.appendChild(sm);ctl.appendChild(pin);ctl.appendChild(st);r.appendChild(ctl);
+    const pr=document.createElement('div');pr.className='prow';
+    pr.innerHTML='<span>Ինքնարժեք</span><input type="number" inputmode="numeric" class="cin" placeholder="?"><span class="mg"></span>';
+    const cin=pr.querySelector('.cin'),mg=pr.querySelector('.mg');if(c.cost!=null)cin.value=c.cost;
+    const pupd=()=>{if(c.cost==null||c.cost===''){mg.textContent='';return}const pf=(c.p-c.cost)*c.q;mg.textContent=`շահ․ ${fmt(pf)}`;mg.style.color=pf<0?'var(--bad)':'var(--ok)'};pupd();
+    cin.oninput=()=>{c.cost=cin.value===''?null:+cin.value;LS.set('cart',cart);pupd();calcQuote()};
+    const oldUpd=upd;pin.addEventListener('input',pupd);st.addEventListener('click',pupd);
+    r.appendChild(pr);
     box.appendChild(r);
   });
   const sn=document.createElement('div');sn.id='stockNote';sn.className='note';box.appendChild(sn);stockNote();
@@ -746,13 +768,15 @@ function guessRate(){
   preview();
 }
 $('m_rate').addEventListener('input',()=>{if(+$('m_rate').value>1){LS.set('usdRate',+$('m_rate').value);pushSettingsSoon()}});
-function adj(raw){const rate=+$('m_rate').value||1, mk=+$('m_mk').value||0;const p=raw*rate*(1+mk/100);return (rate!==1||mk)?Math.round(p/10)*10:Math.round(p*100)/100}
+function costOf(raw){const rate=+$('m_rate').value||1;const c=raw*rate;return rate!==1?Math.round(c):Math.round(c*100)/100}
+function saleOf(cost,mk){mk=+mk||0;return mk?Math.round(cost*(1+mk/100)/10)*10:cost}
+function adj(raw){return saleOf(costOf(raw),$('m_mk').value)}
 function buildCat(){
   const hi=+$('m_head').value, ni=+$('m_name').value, pi=+$('m_price').value, ki=+$('m_code').value, ci=+$('m_cat').value, si=+$('m_stk').value;
   const out=[];
   rows.slice(hi+1).forEach(r=>{
     const n=String(r[ni]??'').trim(), raw=parsePrice(r[pi]);
-    if(n&&isFinite(raw)&&raw>0){const p=adj(raw);const o={n,p,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
+    if(n&&isFinite(raw)&&raw>0){const cost=costOf(raw),p=saleOf(cost,$('m_mk').value);const o={n,p,cost,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
   });
   return out;
 }
@@ -773,10 +797,10 @@ $('m_save').onclick=()=>{
   if(ix>=0&&$('m_merge').checked){
     const old=lists[ix].items.slice();let added=0;
     c.forEach(it=>{const k=mkey(it.k&&it.k.length>3?it.k:it.n);const j=old.findIndex(o=>mkey(o.k&&o.k.length>3?o.k:o.n)===k);
-      if(j>=0){old[j]=Object.assign({},old[j],{p:it.p},it.stk?{stk:it.stk}:{})}else{old.push(it);added++}});
-    lists[ix]=Object.assign({},lists[ix],{items:old,date});
+      if(j>=0){old[j]=Object.assign({},old[j],{p:it.p,cost:it.cost},it.stk?{stk:it.stk}:{})}else{old.push(it);added++}});
+    lists[ix]=Object.assign({},lists[ix],{items:old,date,mk:+$('m_mk').value||0});
   }else{
-    const entry={name:nm,file:LS.get('catName',''),date,items:c};
+    const entry={name:nm,file:LS.get('catName',''),date,items:c,mk:+$('m_mk').value||0};
     if(ix>=0)lists[ix]=entry;else lists.push(entry);
   }
   LS.set('lists',lists);rebuildCatalog();
@@ -787,11 +811,32 @@ $('m_save').onclick=()=>{
   $('map').style.display='none';catUI();toast(`Պահպանվեց ${c.length} ապրանք ✓`);
 };
 
+function profitOf(L,sub,tot){
+  let ps=0,pc=0,work=0,unk=0;
+  L.forEach(l=>{if(l.kind==='prod'){if(l.cost==null||l.cost===''){unk++;return}ps+=l.q*l.p;pc+=l.q*l.cost}else work+=l.q*l.p});
+  const disc=sub-tot, unkSale=L.filter(l=>l.kind==='prod'&&(l.cost==null||l.cost==='')).reduce((s,l)=>s+l.q*l.p,0);
+  const profit=(ps-pc)+work-disc;
+  return {ps,pc,work,disc,unk,unkSale,profit,pct:tot>0?profit/tot*100:0};
+}
+let showPf=LS.get('showPf',false);
+function renderProfit(pf){
+  document.body.classList.toggle('pfon',showPf);
+  $('pfBtn').textContent=showPf?'🙈 Թաքցնել շահույթը':'👁 Շահույթ';
+  const b=$('pfBox');b.style.display=showPf?'block':'none';if(!showPf)return;
+  const row=(k,v,st)=>`<div class="kv"><span>${k}</span><b${st?` style="${st}"`:''}>${v}</b></div>`;
+  b.innerHTML=row('Ապրանքներ՝ վաճառք',fmt(pf.ps))+row('Ապրանքներ՝ ինքնարժեք','− '+fmt(pf.pc))+row('Ապրանքների եկամուտ',fmt(pf.ps-pf.pc))
+    +row('Աշխատանքներ',fmt(pf.work))+(pf.disc>0?row('Զեղչ','− '+fmt(pf.disc)):'')
+    +`<div class="kv pft"><span>Շահույթ</span><b style="color:${pf.profit<0?'var(--bad)':'var(--ok)'}">${fmt(pf.profit)} · ${pf.pct.toFixed(0)}%</b></div>`
+    +(pf.unk?`<div class="note" style="color:var(--warn)">${pf.unk} ապրանքի ինքնարժեքը հայտնի չէ (${fmt(pf.unkSale)})․ լրացրեք «Ինքնարժեք» դաշտը ապրանքի տակ։</div>`:'')
+    +'<div class="note">Այս տվյալները չեն երևում PDF-ում և հաճախորդին ուղարկվող տեքստում։</div>';
+}
+$('pfBtn').onclick=()=>{showPf=!showPf;LS.set('showPf',showPf);calcQuote()};
+
 function quoteLines(){
   const L=[];
-  cart.forEach(c=>{if(c.q>0)L.push({n:c.n,d:c.d||'',q:c.q,u:'հատ',p:c.p})});
-  DEFAULT_ITEMS.forEach(it=>{const q=qty[it.id]||0;if(q>0)L.push({n:it.name,q,u:it.unit,p:priceOf(it)})});
-  customs.forEach(c=>{if(c.q>0&&c.name)L.push({n:c.name,q:c.q,u:'',p:c.p})});
+  cart.forEach(c=>{if(c.q>0)L.push({n:c.n,d:c.d||'',q:c.q,u:'հատ',p:c.p,cost:c.cost==null?null:c.cost,kind:'prod'})});
+  DEFAULT_ITEMS.forEach(it=>{const q=qty[it.id]||0;if(q>0)L.push({n:it.name,q,u:it.unit,p:priceOf(it),cost:0,kind:'work'})});
+  customs.forEach(c=>{if(c.q>0&&c.name)L.push({n:c.name,q:c.q,u:'',p:c.p,cost:0,kind:'work'})});
   return L;
 }
 function calcQuote(){
@@ -801,7 +846,8 @@ function calcQuote(){
   const tot=sub*(1-d/100);
   $('sum').textContent=fmt(tot);
   $('sumSub').textContent = d>0 ? `Առանց զեղչի՝ ${fmt(sub)} · զեղչ ${d}%` : (L.length? `${L.length} տող` : 'Ընտրեք քանակները');
-  return {L,sub,d,tot};
+  const pf=profitOf(L,sub,tot);renderProfit(pf);
+  return {L,sub,d,tot,pf};
 }
 let _shT=0;const shareSoon=()=>{clearTimeout(_shT);_shT=setTimeout(()=>{try{updShare()}catch(e){}},300)};
 $('disc').oninput=calcQuote;
@@ -1098,7 +1144,7 @@ $('syncNow').onclick=()=>pullAll();
 // quote history (cloud when signed in, otherwise this device)
 let editId=LS.get('editId',null), hist=[];
 function snapshot(){const {tot}=calcQuote();return {client:$('client').value.trim(),total:Math.round(tot),
-  data:{client:$('client').value,ig:$('igUser').value,disc:+$('disc').value||0,cart,qty,customs,lines:quoteLines()}}}
+  data:{client:$('client').value,ig:$('igUser').value,disc:+$('disc').value||0,cart,qty,customs,lines:quoteLines(),profit:Math.round(calcQuote().pf.profit)}}}
 function editInfo(){$('editInfo').textContent=editId?'Խմբագրվում է պահպանված գնահաշվարկ':'';}
 $('saveQ').onclick=async()=>{
   if(!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
@@ -1146,7 +1192,7 @@ function drawHistory(){
     r.innerHTML='<div class="n"><b></b><small></small></div><div class="t"></div><button type="button">Բացել</button><button type="button" class="dl" style="color:var(--bad)">×</button>';
     r.querySelector('b').textContent=h.client||'Առանց անվան';
     r.querySelector('small').textContent=`${ds} · ${lines.length} տող · ${lines.slice(0,2).map(l=>String(l.n).split(' — ')[0]).join(', ')}`;
-    r.querySelector('.t').textContent=fmt(h.total||0);
+    r.querySelector('.t').innerHTML=fmt(h.total||0)+(showPf&&h.data&&h.data.profit!=null?`<br><span style="font-size:11px;color:var(--ok);font-weight:600">շահ․ ${fmt(h.data.profit)}</span>`:'');
     const [ob,db]=r.querySelectorAll('button');
     ob.onclick=()=>loadQuote(h);
     db.onclick=async()=>{
