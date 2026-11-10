@@ -245,7 +245,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
         <div class="f"><label>Կոդ (ըստ ցանկ.)</label><select id="m_code"></select></div>
         <div class="f"><label>Կատեգորիա (ըստ ցանկ.)</label><select id="m_cat"></select></div>
         <div class="f"><label>Առկայություն (ըստ ցանկ.)</label><select id="m_stk"></select></div>
-        <div class="f"><label>Իմ գինը / դիլերային (ըստ ցանկ.)</label><select id="m_cost"></select></div>
+        <div class="f"><label>Դիլերային գին (միայն % հաշվելու համար, չի պահվում)</label><select id="m_cost"></select></div>
       </div>
       <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">🏪 Որ խանութից է գնացուցակը</label><input type="text" id="m_sup" list="shopNames" placeholder="ընտրեք կամ գրեք՝ օր․ AMS, GSC" autocomplete="off"><datalist id="shopNames"></datalist><div class="note" style="margin-top:3px">Բրենդը (Hikvision, Dahua, Imou…) ծրագիրը ճանաչում է ինքը՝ մոդելից։</div></div>
       <div class="note" id="supWarn" style="color:var(--warn)"></div>
@@ -890,7 +890,18 @@ function detectMap(rs){
   }
   if(di===ni)di=-1;
   let qi=-1;for(let i=0;i<h.length;i++){if(i!==pi&&/դիլեր|մեծածախ|ինքնարժ|дилер|опт|закуп|партн|dealer|wholesale|partner|cost|purchase|net price|вход/i.test(h[i])&&body.filter(r=>parsePrice(r[i])>0).length>body.length/3){qi=i;break}}
-  return {hi,ni,di,pi,qi,ki:find(/կոդ|code|арт|sku|^art/i),si:find(/առկա|մնացորդ|налич|остат|stock|availab|склад/i)};
+  const ncol=Math.max(0,...rs.map(r=>r.length));
+  const numCol=i=>body.filter(r=>parsePrice(r[i])>0).length>body.length/2;
+  if(qi<0&&pi>=0){ // two price columns without names: the lower one is the dealer price
+    for(let i=0;i<ncol;i++){if(i===pi||!numCol(i))continue;
+      const ratios=body.map(r=>parsePrice(r[pi])/parsePrice(r[i])).filter(x=>isFinite(x)&&x>0).sort((a,b)=>a-b);if(!ratios.length)continue;
+      const med=ratios[ratios.length>>1];
+      if(med>1.03&&med<1.8){qi=i;break}
+      if(med<0.97&&med>0.55){qi=pi;pi=i;break}}
+  }
+  let mi=-1;for(let i=0;i<ncol;i++){if(i===ni||i===di||i===pi||i===qi)continue;const v=body.map(r=>String(r[i]??'').trim()).filter(Boolean);
+    if(v.length>body.length/2&&v.filter(x=>/^[A-Z0-9]{1,12}-[A-Z0-9][A-Z0-9\-\/().+]{1,}$/i.test(x)&&x.length<=40).length>v.length*0.6){mi=i;break}}
+  return {hi,ni,di,pi,qi,mi,ki:find(/կոդ|code|арт|sku|^art/i),si:find(/առկա|մնացորդ|налич|остат|stock|availab|склад/i)};
 }
 function allSheetsRows(){
   const out=[['Անվանում','Վաճառքի գին','Կոդ','Թերթ','Առկայություն','Իմ գինը (դիլերային)']];
@@ -898,7 +909,8 @@ function allSheetsRows(){
     const rs=sheetRows(sn);if(rs.length<2)return;
     const m=detectMap(rs);if(m.ni<0||m.pi<0)return;
     rs.slice(m.hi+1).forEach(r=>{
-      const n=[r[m.ni],m.di>=0?r[m.di]:''].map(x=>String(x??'').trim()).filter(Boolean).join(' — ');
+      const clean=x=>String(x??'').replace(/\s+/g,' ').trim();const nm=clean(r[m.ni]),md=m.mi>=0?clean(r[m.mi]):'';
+      const n=[nm&&md&&!nm.includes(md)?nm+' · '+md:(nm||md),m.di>=0?clean(r[m.di]):''].filter(Boolean).join(' — ');
       if(n&&parsePrice(r[m.pi])>0)out.push([n,r[m.pi],m.ki>=0?String(r[m.ki]??''):'',sn,m.si>=0?r[m.si]:'',m.qi>=0?r[m.qi]:'']);
     });
   });
@@ -956,12 +968,15 @@ $('m_rate').addEventListener('input',()=>{if(+$('m_rate').value>1){LS.set('usdRa
 function costOf(raw){const rate=+$('m_rate').value||1;const c=raw*rate;return rate!==1?Math.round(c):Math.round(c*100)/100}
 function saleOf(cost,mk){mk=+mk||0;return mk?Math.round(cost*(1+mk/100)/10)*10:cost}
 function adj(raw){return saleOf(costOf(raw),$('m_mk').value)}
+let DISC=[];
+function medDisc(){if(!DISC.length)return 0;const a=DISC.slice().sort((x,y)=>x-y);return Math.round(a[a.length>>1]*10000)/100}
 function buildCat(){
+  DISC=[];
   const hi=+$('m_head').value, ni=+$('m_name').value, pi=+$('m_price').value, ki=+$('m_code').value, ci=+$('m_cat').value, si=+$('m_stk').value, qi=+$('m_cost').value;
   const out=[];
   rows.slice(hi+1).forEach(r=>{
-    const n=String(r[ni]??'').trim(), raw=parsePrice(r[pi]);
-    if(n&&isFinite(raw)&&raw>0){const rq=qi>=0?parsePrice(r[qi]):NaN;const hasQ=isFinite(rq)&&rq>0;const base=costOf(raw);const mkv=+$('m_mk').value||0;const cost=hasQ?costOf(rq):(mkv>0?base:undefined),p=saleOf(base,mkv);const o={n,p,cost,r:hasQ?base:undefined,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
+    const n=String(r[ni]??'').replace(/\s+/g,' ').trim(), raw=parsePrice(r[pi]);
+    if(n&&isFinite(raw)&&raw>0){const rq=qi>=0?parsePrice(r[qi]):NaN;const hasQ=isFinite(rq)&&rq>0&&rq<raw;const base=costOf(raw);const mkv=+$('m_mk').value||0;if(hasQ)DISC.push(1-rq/raw);const cost=hasQ?undefined:(mkv>0?base:undefined),p=hasQ?base:saleOf(base,mkv);const o={n,p,cost,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
   });
   return out;
 }
@@ -973,9 +988,8 @@ function preview(){
   const c=buildCat();mergeUI(c.length);
   const cats={};c.forEach(x=>{if(x.c)cats[x.c]=(cats[x.c]||0)+1});
   const sOk=c.filter(x=>x.stk==='ok').length,sNo=c.filter(x=>x.stk==='no').length;
-  const withR=c.filter(x=>x.r!=null).length;
   const cl=Object.keys(cats).length>1?'<br>'+Object.entries(cats).map(([k,v])=>`${k.replace(/</g,'&lt;')}՝ ${v}`).join(' · ')+'<br>':'';
-  $('m_prev').innerHTML=c.length?`Գտնվեց <b style="color:var(--txt)">${c.length}</b> ապրանք։${cl} ${sOk||sNo?`<br>Առկայություն՝ ✓ ${sOk} · ✗ ${sNo}<br>`:''} ${withR?`<br><span style="color:var(--ok)">✓ Գտնվեց երկու գին. հաճախորդի համար՝ վաճառքի գինը, իսկ քո (դիլերային) գինը պահվում է որպես ինքնարժեք (${withR} ապրանք)։</span><br>`:(+$('m_mk').value>0?`<br><span style="color:var(--warn)">Մեկ գին՝ համարվում է քո գինը, վաճառքը = + ${$('m_mk').value}% հավելավճար։</span><br>`:`<br><span style="color:var(--acc2)">Մեկ գին՝ համարվում է խանութի վաճառքի գինը։ «Իմ գինը» կհաշվվի քո զեղչով (գնացուցակների ցուցակում «իմ զեղչ %»)։</span><br>`)} Օրինակ՝<br>`+c.slice(0,3).map(x=>`• ${x.n.replace(/</g,'&lt;').slice(0,50)} — ${fmt(x.p)}${x.cost!=null&&x.cost!==x.p?` <span style="color:var(--mut)">(իմ գինը ${fmt(x.cost)})</span>`:''}`).join('<br>'):'<span style="color:var(--bad)">Ապրանք չգտնվեց — փոխեք սյունակները</span>';
+  $('m_prev').innerHTML=c.length?`Գտնվեց <b style="color:var(--txt)">${c.length}</b> ապրանք։${cl} ${sOk||sNo?`<br>Առկայություն՝ ✓ ${sOk} · ✗ ${sNo}<br>`:''} ${DISC.length?`<br><span style="color:var(--ok)">✓ Գտնվեց երկու գին. վաճառքի գինը կպահվի, իսկ քո զեղչը՝ <b>${medDisc()}%</b> (${DISC.length} ապրանքից)։ 🔒 Դիլերային գները չեն պահվի, միայն %-ը։</span><br>`:(+$('m_mk').value>0?`<br><span style="color:var(--warn)">Մեկ գին՝ համարվում է քո գինը, վաճառքը = + ${$('m_mk').value}% հավելավճար։</span><br>`:`<br><span style="color:var(--acc2)">Մեկ գին՝ համարվում է խանութի վաճառքի գինը։ «Իմ գինը» կհաշվվի քո զեղչով (գնացուցակների ցուցակում «իմ զեղչ %»)։</span><br>`)} Օրինակ՝<br>`+c.slice(0,3).map(x=>`• ${x.n.replace(/</g,'&lt;').slice(0,50)} — ${fmt(x.p)}${DISC.length?` <span style="color:var(--mut)">(իմը ≈${fmt(Math.round(x.p*(1-medDisc()/100)))})</span>`:''}`).join('<br>'):'<span style="color:var(--bad)">Ապրանք չգտնվեց — փոխեք սյունակները</span>';
 }
 $('m_save').onclick=()=>{
   const c=buildCat();if(!c.length){toast('Ապրանք չկա');return}
@@ -992,6 +1006,7 @@ $('m_save').onclick=()=>{
     const entry={name:nm,file:LS.get('catName',''),date,items:c,mk:+$('m_mk').value||0};
     if(ix>=0){toTrash(lists[ix],'փոխարինված');lists[ix]=entry}else lists.push(entry);
   }
+  {const L0=lists.find(l=>l.name.toLowerCase()===nm.toLowerCase());if(DISC.length&&L0)L0.disc=medDisc();}
   LS.set('lists',lists);rebuildCatalog();
   pushList(lists.find(l=>l.name.toLowerCase()===nm.toLowerCase()));
   let upd=0;
