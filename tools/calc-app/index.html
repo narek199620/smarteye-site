@@ -150,6 +150,13 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
     <div id="askBox">
       <button class="btn ghost" id="askBtn" type="button">📨 Հարցնել մատակարարին (առկայություն)</button>
       <div id="askPanel" style="display:none"></div>
+      <button class="btn ghost" id="replyBtn" type="button">📥 Տեղադրել մատակարարի պատասխանը</button>
+      <div id="replyPanel" class="pform" style="display:none">
+        <div class="note" style="margin-top:0">Պատճենեք մատակարարի պատասխանը Viber/Telegram/WhatsApp-ից և տեղադրեք այստեղ, օր․ «1043-ը կա, 7608 չկա»։</div>
+        <textarea id="replyText" rows="5" style="width:100%;margin-top:6px;background:#0a1736;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px;font-family:inherit;font-size:14px"></textarea>
+        <button class="btn" id="replyApply" type="button">Կիրառել</button>
+        <div id="replyRes" class="note"></div>
+      </div>
     </div>
   </div>
   <div class="card">
@@ -583,6 +590,45 @@ function renderCart(){
   });
   const sn=document.createElement('div');sn.id='stockNote';sn.className='note';box.appendChild(sn);stockNote();
 }
+/* ---------- Supplier text reply → ✓/✗ ---------- */
+const YES=/(^|[^a-zа-яա-ֆ])(կա|կան|առկա|есть|имеется|в наличии|наличие\s*:?\s*да|да|yes|ok|available|in stock|have|✓|✔|\+)(?![a-zа-яա-ֆ])/i;
+const NO=/(չկա|չկան|չունենք|չունեմ|առկա չէ|нет|отсутств|нету|закончил|под заказ|ожида|no\b|not available|out of stock|sold out|✗|✘|❌)/i;
+function lineStatus(t){
+  const s=t.toLowerCase();
+  if(NO.test(s))return 'no';
+  if(YES.test(s))return 'ok';
+  const m=s.match(/(\d+)\s*(հատ|шт|pcs|pc)/);if(m)return +m[1]>0?'ok':'no';
+  if(/[-–—]\s*$/.test(s.trim()))return 'no';
+  return '';
+}
+function itemKeys(c){
+  const model=modelOf(c);const ks=new Set();const full=cmp(model);if(full.length>=4)ks.add(full);
+  // distinctive chunks: e.g. 2CD1043G2, 7608, 1430
+  (model.toUpperCase().match(/[A-Z]*\d[A-Z0-9]*/g)||[]).forEach(t=>{const x=cmp(t);if(x.length>=4)ks.add(x);const d=t.match(/\d{4}/);if(d)ks.add(d[0])});
+  return [...ks];
+}
+function applyReply(text){
+  const lines=String(text).split(/\n|;|,(?=\s*\D)/).map(x=>x.trim()).filter(Boolean);
+  const res=[];
+  cart.forEach(c=>{
+    const keys=itemKeys(c);let st='';
+    for(const ln of lines){const lc=cmp(ln);if(keys.some(k=>lc.includes(k))){st=lineStatus(ln);if(st)break}}
+    if(st){c.st=st;res.push((st==='ok'?'✓ ':'✗ ')+modelOf(c))}
+  });
+  // a single global answer like "բոլորը կա" / "все есть"
+  if(!res.length&&/բոլոր|все|all/i.test(text)){const st=lineStatus(text);if(st)cart.forEach(c=>{c.st=st;res.push((st==='ok'?'✓ ':'✗ ')+modelOf(c))})}
+  LS.set('cart',cart);renderCart();
+  return res;
+}
+$('replyBtn').onclick=()=>{const p=$('replyPanel');p.style.display=p.style.display==='block'?'none':'block';if(p.style.display==='block')$('replyText').focus()};
+$('replyApply').onclick=()=>{
+  if(!cart.length){toast('Գնահաշվարկը դատարկ է');return}
+  const r=applyReply($('replyText').value);
+  const miss=cart.filter(c=>!c.st).map(modelOf);
+  $('replyRes').innerHTML=(r.length?`Նշվեց՝<br>${r.map(esc).join('<br>')}`:'Չհաջողվեց հասկանալ պատասխանը։ Նշեք ✓/✗ ձեռքով կամ ուղարկեք Claude-ին։')+(miss.length&&r.length?`<br><span style="color:var(--warn)">Պատասխանում չգտնվեց՝ ${miss.map(esc).join(', ')}</span>`:'');
+  if(r.length)toast(`Նշվեց ${r.length} ապրանք`);
+};
+
 function stockNote(){
   const e=$('stockNote');if(!e)return;
   const no=cart.filter(c=>c.st==='no').length, ok=cart.filter(c=>c.st==='ok').length, un=cart.length-no-ok;
