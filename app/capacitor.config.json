@@ -1,0 +1,7 @@
+{
+  "appId": "am.smarteye.pricemanager",
+  "appName": "Price Manager",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "backgroundColor": "#07122b" }
+}
