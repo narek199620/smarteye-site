@@ -170,6 +170,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <button class="btn ghost" id="replyBtn" type="button">📥 Տեղադրել մատակարարի պատասխանը</button>
       <div id="replyPanel" class="pform" style="display:none">
         <div class="note" style="margin-top:0">Պատճենեք մատակարարի պատասխանը Viber/Telegram/WhatsApp-ից և տեղադրեք այստեղ, օր․ «1043-ը կա, 7608 չկա»։</div>
+        <div class="grid2" style="margin-top:6px"><label class="note" style="margin:0">Որ մատակարարից / խանութից<select id="replyShop"></select></label><label class="note" id="replyNewW" style="margin:0;display:none">Անուն<input type="text" id="replyNew"></label></div>
         <textarea id="replyText" rows="5" style="width:100%;margin-top:6px;background:#0a1736;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px;font-family:inherit;font-size:14px"></textarea>
         <button class="btn" id="replyApply" type="button">Կիրառել</button>
         <div id="replyRes" class="note"></div>
@@ -653,20 +654,30 @@ function applyReply(text){
   const res=[];
   cart.forEach(c=>{
     const keys=itemKeys(c);let st='';
-    for(const ln of lines){const lc=cmp(ln);if(keys.some(k=>lc.includes(k))){st=lineStatus(ln);if(st)break}}
+    for(const ln of lines){const lc=cmp(ln);if(keys.some(k=>lc.includes(k))){st=lineStatus(ln);
+      if(!st){let l2=ln;(modelOf(c).match(/\d{3,}/g)||[]).forEach(dg=>{l2=l2.replace(new RegExp('[\\w/()]*'+dg+'[A-Za-z/()]*','g'),' ')});if(parseOfferPrice(l2)>0)st='ok'}
+      if(st)break}}
     if(st){c.st=st;res.push((st==='ok'?'✓ ':'✗ ')+modelOf(c))}
   });
+  if(!res.length&&cart.length===1){const st=lineStatus(text)||(parseOfferPrice(text)>0?'ok':'');if(st){cart[0].st=st;res.push((st==='ok'?'✓ ':'✗ ')+modelOf(cart[0]))}}
   // a single global answer like "բոլորը կա" / "все есть"
   if(!res.length&&/բոլոր|все|all/i.test(text)){const st=lineStatus(text);if(st)cart.forEach(c=>{c.st=st;res.push((st==='ok'?'✓ ':'✗ ')+modelOf(c))})}
   LS.set('cart',cart);renderCart();
   return res;
 }
-$('replyBtn').onclick=()=>{const p=$('replyPanel');p.style.display=p.style.display==='block'?'none':'block';if(p.style.display==='block')$('replyText').focus()};
+$('replyBtn').onclick=()=>{const p=$('replyPanel');p.style.display=p.style.display==='block'?'none':'block';
+  if(p.style.display==='block'){const sel=$('replyShop');sel.innerHTML=shopOptions();
+    // preselect: single supplier among cart items
+    const sup=[...new Set(cart.map(c=>c.src||c.s).filter(Boolean))];if(sup.length===1)sel.value=sup[0];
+    sel.onchange=()=>{$('replyNewW').style.display=sel.value==='__new'?'block':'none'};$('replyText').focus()}};
 $('replyApply').onclick=()=>{
   if(!cart.length){toast('Գնահաշվարկը դատարկ է');return}
-  const r=applyReply($('replyText').value);
+  let shop=$('replyShop').value;
+  if(!shop){toast('Ընտրեք, թե որ մատակարարից է պատասխանը');$('replyShop').focus();return}
+  if(shop==='__new'){shop=$('replyNew').value.trim();if(!shop){toast('Գրեք անունը');return}if(!shops.some(x=>x.name===shop)){shops.push({name:shop});saveShops();renderShops()}}
+  const r=shopReply(shop,$('replyText').value);
   const miss=cart.filter(c=>!c.st).map(modelOf);
-  $('replyRes').innerHTML=(r.length?`Նշվեց՝<br>${r.map(esc).join('<br>')}`:'Չհաջողվեց հասկանալ պատասխանը։ Նշեք ✓/✗ ձեռքով կամ ուղարկեք Claude-ին։')+(miss.length&&r.length?`<br><span style="color:var(--warn)">Պատասխանում չգտնվեց՝ ${miss.map(esc).join(', ')}</span>`:'');
+  $('replyRes').innerHTML=(r.length?`${esc(shop)}՝<br>${r.map(esc).join('<br>')}`:'Չհաջողվեց հասկանալ պատասխանը։ Նշեք ✓/✗ ձեռքով կամ ուղարկեք Claude-ին։')+(miss.length&&r.length?`<br><span style="color:var(--warn)">Պատասխանում չգտնվեց՝ ${miss.map(esc).join(', ')}</span>`:'');
   if(r.length)toast(`Նշվեց ${r.length} ապրանք`);
 };
 
@@ -1351,21 +1362,30 @@ function parseOfferPrice(line){
   const nums=(l.match(/\d[\d\s.,]*\d|\d/g)||[]).map(x=>parsePrice(x)).filter(v=>v>=500);
   return nums.length?nums[nums.length-1]:0;
 }
+function stripModel(c,ln){let l2=ln.replace(new RegExp(modelOf(c).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig'),' ');(modelOf(c).match(/\d{3,}/g)||[]).forEach(dg=>{l2=l2.replace(new RegExp('[\\w/()]*'+dg+'[A-Za-z/()]*','g'),' ')});return l2}
+function shopReply(shop,text){
+  const lines=String(text).split(/\n|;|,(?=\s*\D)/).map(x=>x.trim()).filter(Boolean);const res=[];
+  const put=(c,st,price)=>{if(shop){c.offers=(c.offers||[]).filter(o=>o.shop!==shop);c.offers.push({shop,price,st,at:Date.now()})}
+    if(st)c.st=st;if(shop&&st==='ok'&&price&&(!c.src||c.src===shop)){c.src=shop;c.cost=price}
+    res.push(`${st==='no'?'✗':'✓'} ${modelOf(c)}${price?' — '+fmt(price):''}`)};
+  cart.forEach(c=>{const keys=itemKeys(c);for(const ln of lines){const lc=cmp(ln);if(keys.some(k=>lc.includes(k))){let st=lineStatus(ln);const price=st==='no'?0:parseOfferPrice(stripModel(c,ln));if(!st&&price)st='ok';if(st){put(c,st,price);break}}}});
+  if(!res.length&&cart.length===1){let st=lineStatus(text);const price=st==='no'?0:parseOfferPrice(stripModel(cart[0],text));if(!st&&price)st='ok';if(st)put(cart[0],st,price)}
+  if(!res.length&&/բոլոր|все|all/i.test(text)){const st=lineStatus(text);if(st)cart.forEach(c=>put(c,st,0))}
+  LS.set('cart',cart);renderCart();calcQuote();renderProj();
+  return res;
+}
+function shopOptions(){return '<option value="">— ընտրեք —</option>'+shops.map(x=>`<option>${esc(x.name)}</option>`).join('')+lists.filter(l=>!shops.some(x=>x.name===l.name)).map(l=>`<option>${esc(l.name)}</option>`).join('')+'<option value="__new">＋ այլ խանութ…</option>'}
 $('pasteShop').onclick=()=>{
   const p=$('shopReplyPanel');if(p.style.display==='block'){p.style.display='none';return}
   if(!cart.length){toast('Գնահաշվարկը դատարկ է');return}
-  const opts=shops.map(x=>`<option>${esc(x.name)}</option>`).join('')+'<option value="__new">＋ այլ խանութ…</option>';
-  p.innerHTML=`<div class="grid2"><label>Որ խանութից<select class="r_s">${opts}</select></label><label class="r_nw" style="display:none">Անուն<input type="text" class="r_n"></label></div>
+  p.innerHTML=`<div class="grid2"><label>Որ խանութից<select class="r_s">${shopOptions()}</select></label><label class="r_nw" style="display:none">Անուն<input type="text" class="r_n"></label></div>
     <label>Պատասխանը (պատճենեք Viber/Telegram-ից)<textarea class="r_t" rows="5" style="width:100%;margin-top:4px;background:#0a1736;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px;font-family:inherit;font-size:14px" placeholder="օր․ 1043 կա 17500, 7608 չկա"></textarea></label>
     <button type="button" class="btn r_go">Կիրառել</button><div class="note r_res"></div>`;
   p.style.display='block';const q=x=>p.querySelector(x);
   const tg=()=>{q('.r_nw').style.display=q('.r_s').value==='__new'?'block':'none'};tg();q('.r_s').onchange=tg;
   q('.r_go').onclick=()=>{
-    let shop=q('.r_s').value;if(shop==='__new'){shop=q('.r_n').value.trim();if(!shop){toast('Գրեք խանութի անունը');return}if(!shops.some(x=>x.name===shop)){shops.push({name:shop});saveShops();renderShops()}}
-    const text=q('.r_t').value;const lines=String(text).split(/\n|;|,(?=\s*\D)/).map(x=>x.trim()).filter(Boolean);const res=[];
-    cart.forEach(c=>{const keys=itemKeys(c);for(const ln of lines){const lc=cmp(ln);if(keys.some(k=>lc.includes(k))){const st=lineStatus(ln);let ln2=ln.replace(new RegExp(modelOf(c).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig'),' ');(modelOf(c).match(/\d{3,}/g)||[]).forEach(dg=>{ln2=ln2.replace(new RegExp('\\b\\w*'+dg+'\\w*\\b','g'),' ')});const price=st==='no'?0:parseOfferPrice(ln2);
-      if(st||price){c.offers=(c.offers||[]).filter(o=>o.shop!==shop);c.offers.push({shop,price,st:st||(price?'ok':''),at:Date.now()});res.push(`${st==='no'?'✗':'✓'} ${modelOf(c)}${price?' — '+fmt(price):''}`)}break}}});
-    if(!res.length&&/բոլոր|все|all/i.test(text)){const st=lineStatus(text);if(st)cart.forEach(c=>{c.offers=(c.offers||[]).filter(o=>o.shop!==shop);c.offers.push({shop,price:0,st,at:Date.now()});res.push((st==='ok'?'✓ ':'✗ ')+modelOf(c))})}
+    let shop=q('.r_s').value;if(!shop){toast('Ընտրեք, թե որ խանութից է պատասխանը');return}if(shop==='__new'){shop=q('.r_n').value.trim();if(!shop){toast('Գրեք խանութի անունը');return}if(!shops.some(x=>x.name===shop)){shops.push({name:shop});saveShops();renderShops()}}
+    const res=shopReply(shop,q('.r_t').value);
     LS.set('cart',cart);renderProj();
     q('.r_res').innerHTML=res.length?`${esc(shop)}՝<br>${res.map(esc).join('<br>')}`:'Չհաջողվեց հասկանալ պատասխանը․ ավելացրեք «＋ Առաջարկ»-ով կամ ուղարկեք Claude-ին։';
   };
