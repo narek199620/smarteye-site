@@ -236,10 +236,10 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
         <div class="f"><label>Առկայություն (ըստ ցանկ.)</label><select id="m_stk"></select></div>
         <div class="f"><label>Իմ գինը / դիլերային (ըստ ցանկ.)</label><select id="m_cost"></select></div>
       </div>
-      <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">Մատակարար / բրենդ</label><input type="text" id="m_sup" placeholder="օր․ Hikvision, Dahua"></div>
+      <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">🏪 Որ խանութից է գնացուցակը</label><input type="text" id="m_sup" list="shopNames" placeholder="ընտրեք կամ գրեք՝ օր․ AMS, GSC" autocomplete="off"><datalist id="shopNames"></datalist><div class="note" style="margin-top:3px">Բրենդը (Hikvision, Dahua, Imou…) ծրագիրը ճանաչում է ինքը՝ մոդելից։</div></div>
       <div class="note" id="supWarn" style="color:var(--warn)"></div>
       <label class="note" id="mergeRow" style="display:none;align-items:center;gap:8px"><input type="checkbox" id="m_merge" style="width:auto"> Ավելացնել/թարմացնել (եղած ապրանքները չջնջել)</label>
-      <div class="note">Յուրաքանչյուր մատակարարի համար օգտագործեք առանձին անուն (Hikvision, Dahua, IMOU…)։</div>
+      <div class="note">Յուրաքանչյուր խանութի համար՝ իր անունը (օր․ AMS, GSC)։ Նույն Hikvision ապրանքը երկու խանութից կերևա երկու տողով՝ իր գնով։</div>
       <div class="grid2" style="margin-top:10px">
         <div class="f"><label>Փոխարժեք (եթե գինը $ է)</label><input type="number" id="m_rate" inputmode="decimal" value="1" step="any"></div>
         <div class="f"><label>Իմ հավելավճարը %</label><input type="number" id="m_mk" inputmode="decimal" value="0" step="any"></div>
@@ -766,7 +766,12 @@ function specOf(txt){
 // Excel import
 let wb=null, rows=[];
 const opt=(sel,list,val)=>{sel.innerHTML=list.map((t,i)=>`<option value="${i-(sel.dataset.opt?1:0)}">${t}</option>`).join('');if(val!=null)sel.value=val};
-function guessSup(fn){const f=fn.toLowerCase();if(/hik|hiwatch|ezviz/.test(f))return 'Hikvision';if(/dahua|imou/.test(f))return 'Dahua';return fn.replace(/\.[^.]+$/,'').slice(0,30)}
+function guessSup(fn){const f=fn.toLowerCase();
+  const names=[...new Set(shops.map(x=>x.name).concat(lists.map(l=>l.name)))];
+  const hit=names.find(n=>n.length>=2&&f.includes(n.toLowerCase()));if(hit)return hit;
+  const prev=lists.find(l=>l.file&&l.file===fn);if(prev)return prev.name;
+  return '';}
+function fillShopNames(){const dl=$('shopNames');if(!dl)return;dl.innerHTML=[...new Set(shops.map(x=>x.name).concat(lists.map(l=>l.name)))].map(n=>`<option value="${esc(n)}">`).join('')}
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 const PDFJS='vendor/';
 async function pdfRows(buf){
@@ -803,7 +808,7 @@ $('xfile').onchange=async e=>{
       rows=await pdfRows(await f.arrayBuffer());
       if(rows.length<2){toast('PDF-ում գներով տողեր չգտնվեցին (գուցե սկանավորված նկար է)');e.target.value='';return}
       LS.set('catName',f.name);
-      $('m_sup').value=guessSup(f.name);
+      $('m_sup').value=guessSup(f.name);fillShopNames();
       document.querySelectorAll('#map .xl').forEach(x=>x.style.display='none');
       $('m_head').innerHTML='<option value="0">1</option>';$('m_head').value=0;
       loadCols();
@@ -818,7 +823,7 @@ $('xfile').onchange=async e=>{
     const buf=await f.arrayBuffer();
     wb=XLSX.read(buf,{type:'array'});
     LS.set('catName',f.name);
-    $('m_sup').value=guessSup(f.name);
+    $('m_sup').value=guessSup(f.name);fillShopNames();
     $('m_sheet').innerHTML=`<option value="-1">Ավտոմատ${wb.SheetNames.length>1?' — բոլոր թերթերը ('+wb.SheetNames.length+')':''}</option>`+wb.SheetNames.map((s,i)=>`<option value="${i}">Ձեռքով՝ ${s}</option>`).join('');
     $('m_sheet').value=-1;
     loadSheet();guessRate();
@@ -947,7 +952,8 @@ function preview(){
 }
 $('m_save').onclick=()=>{
   const c=buildCat();if(!c.length){toast('Ապրանք չկա');return}
-  const nm=($('m_sup').value||'').trim()||'Գնացուցակ';
+  const nm=($('m_sup').value||'').trim();if(!nm){toast('Նշեք, թե որ խանութից է գնացուցակը');$('m_sup').focus();return}
+  if(!shops.some(x=>x.name.toLowerCase()===nm.toLowerCase())){shops.push({name:nm});saveShops();renderShops()}
   const dt=new Date();const date=`${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
   const ix=lists.findIndex(l=>l.name.toLowerCase()===nm.toLowerCase());
   if(ix>=0&&$('m_merge').checked){
