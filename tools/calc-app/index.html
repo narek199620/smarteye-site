@@ -184,7 +184,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <div class="f"><label>Հաճախորդ</label><input type="text" id="client" placeholder="Անուն / հասցե"></div>
     </div>
     <label class="note" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="promoOn" style="width:auto;margin-top:3px"><span id="promoLbl"></span></label>
-    <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">Հաճախորդի Instagram (ըստ ցանկ.)</label><input type="text" id="igUser" placeholder="@username" autocapitalize="off" autocorrect="off"></div>
+    <input type="hidden" id="igUser">
   </div>
   <div class="card total">
     <div class="sub">Ընդամենը</div>
@@ -1015,7 +1015,7 @@ function quoteText(){
   return t;
 }
 function igHandle(){return ($('igUser').value||'').trim().replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/[/?].*$/,'')}
-$('igUser').value=LS.get('igUser','');
+$('igUser').value='';LS.set('igUser','');
 $('igUser').oninput=e=>{LS.set('igUser',e.target.value);updShare()};
 function updShare(){
   const t=quoteText(), u=igHandle();
