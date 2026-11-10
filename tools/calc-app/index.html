@@ -480,7 +480,7 @@ function brandOf0(t,listName){const u=String(t||'').toUpperCase();
   const ln=String(listName||'').toUpperCase();
   if(/IMOU/.test(ln))return 'Imou';if(/EZVIZ/.test(ln))return 'EZVIZ';if(/DAHUA/.test(ln))return 'Dahua';if(/HIK/.test(ln))return 'Hikvision';
   return 'Այլ';}
-function rebuildCatalog(){catalog=[];lists.forEach(l=>l.items.forEach((it,idx)=>{const o=Object.assign({s:l.name,_l:l,_i:idx},it);o.b=brandOf(o.n+' '+(o.k||'')+' '+(o.c||''),l.name+' '+(l.file||''));o.sp=specOf(o.n+' '+(o.k||'')+' '+(o.c||''));o.h=norm(o.n+' '+(o.k||'')+' '+(o.c||'')+' '+o.sp)+' ';o.hc=o.h.replace(/[^a-z0-9а-яա-ֆ]/g,'');catalog.push(o)}));if(supFilter&&!catalog.some(it=>fMatch(it,supFilter)))supFilter=''}
+function rebuildCatalog(){catalog=[];lists.forEach(l=>l.items.forEach((it,idx)=>{const o=Object.assign({s:l.name,_l:l,_i:idx},it);if(o.cost==null&&l.disc>0&&o.p>0){o.cost=Math.round(o.p*(1-l.disc/100));o.est=1}o.b=brandOf(o.n+' '+(o.k||'')+' '+(o.c||''),l.name+' '+(l.file||''));o.sp=specOf(o.n+' '+(o.k||'')+' '+(o.c||''));o.h=norm(o.n+' '+(o.k||'')+' '+(o.c||'')+' '+o.sp)+' ';o.hc=o.h.replace(/[^a-z0-9а-яա-ֆ]/g,'');catalog.push(o)}));if(supFilter&&!catalog.some(it=>fMatch(it,supFilter)))supFilter=''}
 function fMatch(it,f){if(!f)return true;if(f.startsWith('b:'))return it.b===f.slice(2);if(f.startsWith('s:'))return it.s===f.slice(2);return it.s===f}
 let cart = LS.get('cart', []);         // [{n,p,q,c}]
 function norm(s){return String(s??'').toLowerCase().replace(/\s+/g,' ').trim()}
@@ -501,7 +501,9 @@ function catUI(){
   const ci=$('catInfo');ci.innerHTML='';
   lists.forEach((l,ix)=>{
     const r=document.createElement('div');r.className='lst';
-    r.innerHTML='<div class="n"><b></b><small></small></div><label class="mkl">հավել. %<input type="number" inputmode="decimal" class="mkin"></label><button class="del" type="button" title="Ջնջել">×</button>';
+    r.innerHTML='<div class="n"><b></b><small></small></div><label class="mkl">իմ զեղչ %<input type="number" inputmode="decimal" class="dsin"></label><label class="mkl">հավել. %<input type="number" inputmode="decimal" class="mkin"></label><button class="del" type="button" title="Ջնջել">×</button>';
+    const di=r.querySelector('.dsin');di.value=l.disc||'';di.placeholder='—';di.title='Քո դիլերային զեղչը այս խանութում․ «Իմ գինը» = գին − զեղչ (դիլերային գնացուցակ վերբեռնելու կարիք չկա)';
+    let _dsT=0;di.oninput=()=>{clearTimeout(_dsT);_dsT=setTimeout(()=>{l.disc=+di.value||0;LS.set('lists',lists);rebuildCatalog();renderResults();if($('v-prod').classList.contains('on'))renderProd();pushList(l);toast(l.disc?`${l.name}՝ իմ գինը = գին − ${l.disc}%`:`${l.name}՝ զեղչը հանվեց`)},600)};
     const mi=r.querySelector('.mkin');mi.value=l.mk!=null?l.mk:'';mi.placeholder='—';
     const hasCost=l.items.some(it=>it.cost!=null);if(!hasCost){mi.disabled=true;mi.title='Ներմուծեք նորից՝ ինքնարժեքը պահելու համար'}
     let _mkT=0;mi.oninput=()=>{clearTimeout(_mkT);_mkT=setTimeout(()=>{const mk=+mi.value||0;l.mk=mk;l.items.forEach(it=>{const base=it.r!=null?it.r:it.cost;if(base!=null)it.p=saleOf(base,mk)});
@@ -588,7 +590,7 @@ function searchCatalog(qRaw,filt){if(filt===undefined)filt=supFilter;
 }
 function resRow(it){
     const r=document.createElement('div');r.className='res';
-    r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
+    r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${it.est?'≈':''}${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
     {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
       if(parts.length>1){const ar=document.createElement('button');ar.type='button';ar.className='arw';ar.textContent='▸';mb.appendChild(ar);const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);ar.onclick=e=>{e.stopPropagation();nd.classList.toggle('open');ar.textContent=nd.classList.contains('open')?'▾':'▸'}}}
     if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1&&it.s.toLowerCase()!==it.b.toLowerCase()?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
@@ -959,7 +961,7 @@ function buildCat(){
   const out=[];
   rows.slice(hi+1).forEach(r=>{
     const n=String(r[ni]??'').trim(), raw=parsePrice(r[pi]);
-    if(n&&isFinite(raw)&&raw>0){const rq=qi>=0?parsePrice(r[qi]):NaN;const hasQ=isFinite(rq)&&rq>0;const base=costOf(raw);const cost=hasQ?costOf(rq):base,p=saleOf(base,$('m_mk').value);const o={n,p,cost,r:hasQ?base:undefined,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
+    if(n&&isFinite(raw)&&raw>0){const rq=qi>=0?parsePrice(r[qi]):NaN;const hasQ=isFinite(rq)&&rq>0;const base=costOf(raw);const mkv=+$('m_mk').value||0;const cost=hasQ?costOf(rq):(mkv>0?base:undefined),p=saleOf(base,mkv);const o={n,p,cost,r:hasQ?base:undefined,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
   });
   return out;
 }
@@ -973,7 +975,7 @@ function preview(){
   const sOk=c.filter(x=>x.stk==='ok').length,sNo=c.filter(x=>x.stk==='no').length;
   const withR=c.filter(x=>x.r!=null).length;
   const cl=Object.keys(cats).length>1?'<br>'+Object.entries(cats).map(([k,v])=>`${k.replace(/</g,'&lt;')}՝ ${v}`).join(' · ')+'<br>':'';
-  $('m_prev').innerHTML=c.length?`Գտնվեց <b style="color:var(--txt)">${c.length}</b> ապրանք։${cl} ${sOk||sNo?`<br>Առկայություն՝ ✓ ${sOk} · ✗ ${sNo}<br>`:''} ${withR?`<br><span style="color:var(--ok)">✓ Գտնվեց երկու գին. հաճախորդի համար՝ վաճառքի գինը, իսկ քո (դիլերային) գինը պահվում է որպես ինքնարժեք (${withR} ապրանք)։</span><br>`:`<br><span style="color:var(--warn)">Գտնվեց միայն մեկ գին. այն համարվում է քո գինը, վաճառքը = + հավելավճար %։ Եթե ֆայլում դիլերային գինն էլ կա, ընտրեք «Իմ գինը / դիլերային» սյունակը։</span><br>`} Օրինակ՝<br>`+c.slice(0,3).map(x=>`• ${x.n.replace(/</g,'&lt;').slice(0,50)} — ${fmt(x.p)}${x.cost!=null&&x.cost!==x.p?` <span style="color:var(--mut)">(իմ գինը ${fmt(x.cost)})</span>`:''}`).join('<br>'):'<span style="color:var(--bad)">Ապրանք չգտնվեց — փոխեք սյունակները</span>';
+  $('m_prev').innerHTML=c.length?`Գտնվեց <b style="color:var(--txt)">${c.length}</b> ապրանք։${cl} ${sOk||sNo?`<br>Առկայություն՝ ✓ ${sOk} · ✗ ${sNo}<br>`:''} ${withR?`<br><span style="color:var(--ok)">✓ Գտնվեց երկու գին. հաճախորդի համար՝ վաճառքի գինը, իսկ քո (դիլերային) գինը պահվում է որպես ինքնարժեք (${withR} ապրանք)։</span><br>`:(+$('m_mk').value>0?`<br><span style="color:var(--warn)">Մեկ գին՝ համարվում է քո գինը, վաճառքը = + ${$('m_mk').value}% հավելավճար։</span><br>`:`<br><span style="color:var(--acc2)">Մեկ գին՝ համարվում է խանութի վաճառքի գինը։ «Իմ գինը» կհաշվվի քո զեղչով (գնացուցակների ցուցակում «իմ զեղչ %»)։</span><br>`)} Օրինակ՝<br>`+c.slice(0,3).map(x=>`• ${x.n.replace(/</g,'&lt;').slice(0,50)} — ${fmt(x.p)}${x.cost!=null&&x.cost!==x.p?` <span style="color:var(--mut)">(իմ գինը ${fmt(x.cost)})</span>`:''}`).join('<br>'):'<span style="color:var(--bad)">Ապրանք չգտնվեց — փոխեք սյունակները</span>';
 }
 $('m_save').onclick=()=>{
   const c=buildCat();if(!c.length){toast('Ապրանք չկա');return}
@@ -1432,13 +1434,13 @@ $('amsGo').onclick=async()=>{
     const {data,error}=await CLOUD.sb.functions.invoke('ams-import',{body:{cats:$('amsCats').value.split(',')}});
     if(error)throw error;if(!data||!data.ok)throw new Error(data&&data.error||'error');
     const d=+$('amsDisc').value||0;
-    const items=data.items.map(x=>{const o={n:x.n,p:x.p,c:x.c||''};if(x.stk)o.stk=x.stk;if(d>0){o.r=x.p;o.cost=Math.round(x.p*(1-d/100))}return o});
+    const items=data.items.map(x=>{const o={n:x.n,p:x.p,c:x.c||''};if(x.stk)o.stk=x.stk;return o});
     const name='AMS';const dt=new Date();const date=`${String(dt.getDate()).padStart(2,'0')}.${String(dt.getMonth()+1).padStart(2,'0')}.${dt.getFullYear()}`;
     let l=lists.find(x=>x.name.toLowerCase()===name.toLowerCase());let added=0,upd=0;
     if(!l){l={name,file:'ams.am',date,items:[],mk:0};lists.push(l)}
     const idx=new Map(l.items.map((it,i)=>[cmp(it.n),i]));
-    items.forEach(it=>{const k=cmp(it.n);if(idx.has(k)){const o=l.items[idx.get(k)];Object.assign(o,{p:it.p,c:it.c||o.c});if(it.stk)o.stk=it.stk;if(it.cost!=null){o.cost=it.cost;o.r=it.r}upd++}else{l.items.push(it);added++}});
-    l.date=date;l.file='ams.am';
+    items.forEach(it=>{const k=cmp(it.n);if(idx.has(k)){const o=l.items[idx.get(k)];Object.assign(o,{p:it.p,c:it.c||o.c});if(it.stk)o.stk=it.stk;upd++}else{l.items.push(it);added++}});
+    l.date=date;l.file='ams.am';if(d>0)l.disc=d;
     if(!shops.some(x=>x.name==='AMS')){shops.push({name:'AMS',note:'Hikvision, EZVIZ · ams.am'});saveShops();renderShops()}
     LS.set('lists',lists);rebuildCatalog();await pushList(l);catUI();renderResults();renderProd();
     const ok=items.filter(x=>x.stk==='ok').length;
@@ -1494,7 +1496,7 @@ function prodRow(it){
   const parts=String(it.n).split(' — ');
   const stk=it.stk==='ok'?'<span class="st ok">✓</span>':it.stk==='no'?'<span class="st no">✗</span>':'';
   r.innerHTML=`<div class="ph"><div class="n"><span class="tag">${(it.ty||(it.ty=typeOf(it)))[1]} ${esc(it.b)}</span><b class="mdl">${esc(parts[0])}${parts.length>1?'<button type="button" class="arw">▸</button>':''}</b>${parts.length>1?`<span class="dsc">${esc(parts.slice(1).join(' — '))}</span>`:''}<small class="spc">${esc(it.sp||'')}</small></div>
-    <div class="pp">${stk}<b>${fmt(it.p)}</b>${it.cost!=null?`<small>իմ գինը ${fmt(it.cost)}</small>${it.p!==it.cost?`<span class="df">+${fmt(it.p-it.cost)} (${it.cost?((it.p-it.cost)/it.cost*100).toFixed(0):0}%)</span>`:''}`:''}</div></div>`;
+    <div class="pp">${stk}<b>${fmt(it.p)}</b>${it.cost!=null?`<small>իմ գինը ${it.est?'≈':''}${fmt(it.cost)}</small>${it.p!==it.cost?`<span class="df">+${fmt(it.p-it.cost)} (${it.cost?((it.p-it.cost)/it.cost*100).toFixed(0):0}%)</span>`:''}`:''}</div></div>`;
   const key=it.s+'|'+it._i;
   const ar=r.querySelector('.arw');if(ar)ar.onclick=e=>{e.stopPropagation();const ph=r.querySelector('.ph');ph.classList.toggle('open');ar.textContent=ph.classList.contains('open')?'▾':'▸'};
   r.querySelector('.ph').onclick=()=>{pOpen=pOpen===key?null:key;renderProd()};
@@ -1565,7 +1567,7 @@ function pushSettingsSoon(){if(!cloudOn())return;clearTimeout(_setT);_setT=setTi
   const {error}=await CLOUD.sb.from('pm_settings').upsert({user_id:CLOUD.user.id,data:settingsData(),updated_at:new Date().toISOString()});
   error?cloudErr(error,'settings'):cst('ok','Ամպ')},900)}
 async function pushList(l){if(!cloudOn())return;cst('busy','…');
-  const {error}=await CLOUD.sb.from('price_lists').upsert({user_id:CLOUD.user.id,name:l.name,file:l.file||'',date:l.date||'',items:l.items,updated_at:new Date().toISOString()},{onConflict:'user_id,name'});
+  const {error}=await CLOUD.sb.from('price_lists').upsert({user_id:CLOUD.user.id,name:l.name,file:l.file||'',date:l.date||'',items:l.items,mk:+l.mk||0,disc:+l.disc||0,updated_at:new Date().toISOString()},{onConflict:'user_id,name'});
   error?cloudErr(error,'list'):cst('ok','Ամպ')}
 async function deleteList(name){if(!cloudOn())return;
   const {error}=await CLOUD.sb.from('price_lists').delete().eq('name',name);error&&cloudErr(error,'dellist')}
@@ -1573,9 +1575,9 @@ async function pullAll(){
   cst('busy','Բեռնում…');
   try{
     const sb=CLOUD.sb;
-    const [pl,st]=await Promise.all([sb.from('price_lists').select('name,file,date,items').order('name'),sb.from('pm_settings').select('data').maybeSingle()]);
+    const [pl,st]=await Promise.all([sb.from('price_lists').select('name,file,date,items,mk,disc').order('name'),sb.from('pm_settings').select('data').maybeSingle()]);
     if(pl.error)throw pl.error; if(st.error)throw st.error;
-    if(pl.data.length){lists=pl.data.map(r=>({name:r.name,file:r.file,date:r.date,items:r.items||[]}));LS.set('lists',lists)}
+    if(pl.data.length){lists=pl.data.map(r=>({name:r.name,file:r.file,date:r.date,items:r.items||[],mk:+r.mk||0,disc:+r.disc||0}));LS.set('lists',lists)}
     else if(lists.length){for(const l of lists)await pushList(l)}
     rebuildCatalog();catUI();renderResults();
     if(st.data&&st.data.data){const d=st.data.data;
