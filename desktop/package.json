@@ -1,0 +1,32 @@
+{
+  "name": "smarteye-price-manager",
+  "productName": "SmartEye Price Manager",
+  "version": "1.0.0",
+  "description": "SmartEye Price Manager — Windows",
+  "author": "SmartEye System",
+  "main": "main.js",
+  "private": true,
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "am.smarteye.pricemanager",
+    "productName": "SmartEye Price Manager",
+    "files": ["main.js", "icon.png", "www/**/*"],
+    "directories": { "output": "dist" },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "icon.png",
+      "artifactName": "SmartEye-PriceManager-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Price Manager"
+    }
+  }
+}

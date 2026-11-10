@@ -1,4 +1,4 @@
-name: Android APK (Price Manager)
+name: Price Manager apps (Android + Windows)
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/calc-app/**"
       - "app/**"
+      - "desktop/**"
       - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
@@ -17,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  android:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     defaults:
@@ -84,13 +85,61 @@ jobs:
           rm -f release.jks
           ls -la SmartEye-PriceManager.apk
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: app/SmartEye-PriceManager.apk
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install Electron
+        run: npm install --no-audit --no-fund
+      - name: Prepare web files
+        run: |
+          rm -rf www
+          cp -R ../tools/calc-app www
+          rm -f www/.htaccess
+          sed -i 's/"version": "1.0.0"/"version": "1.0.${{ github.run_number }}"/' package.json
+      - name: Build installer
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --win --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exe
+          path: desktop/dist/SmartEye-PriceManager-Setup.exe
+
+  release:
+    needs: [android, windows]
+    if: always() && needs.android.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - run: ls -la out
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: pm-v1.0.${{ github.run_number }}
           name: Price Manager 1.0.${{ github.run_number }}
           body: |
-            SmartEye Price Manager — Android APK.
-            Download on the phone: https://github.com/${{ github.repository }}/releases/latest/download/SmartEye-PriceManager.apk
-          files: app/SmartEye-PriceManager.apk
+            SmartEye Price Manager
+            - Android: https://github.com/${{ github.repository }}/releases/latest/download/SmartEye-PriceManager.apk
+            - Windows: https://github.com/${{ github.repository }}/releases/latest/download/SmartEye-PriceManager-Setup.exe
+          files: |
+            out/SmartEye-PriceManager.apk
+            out/SmartEye-PriceManager-Setup.exe
+          fail_on_unmatched_files: false
           make_latest: true
