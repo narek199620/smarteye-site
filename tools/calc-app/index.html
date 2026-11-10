@@ -205,13 +205,15 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
     <div class="sub" id="sumSub"></div>
     <button type="button" id="pfBtn" class="pfbtn">👁 Շահույթ</button>
     <div id="pfBox" class="pfbox" style="display:none"></div>
-    <div class="share">
+    <button class="btn" id="sendPdf" type="button" style="background:#7360f2">📤 Ուղարկել PDF-ը (Viber, WhatsApp, Telegram…)</button>
+    <div class="sub" style="text-align:center;margin-top:10px">կամ տեքստով՝</div>
+    <div class="share" style="margin-top:6px">
       <a id="shIg" class="sh ig" href="https://www.instagram.com/direct/inbox/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Instagram</a>
       <a id="shTg" class="sh tg" href="https://t.me/share/url" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.3L2.9 11.5c-1 .4-1 1.6.1 1.9l4.6 1.4 1.8 5.5c.2.7 1.1.9 1.6.4l2.6-2.4 4.8 3.5c.6.4 1.4.1 1.6-.6l3.2-15.1c.2-1-.7-1.8-1.7-1.4zM9.8 14.4l-.4 3.6-1.3-4 8.6-5.6-6.9 6z"/></svg>Telegram</a>
       <a id="shVb" class="sh vb" href="viber://forward?text=" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.9 2 3 4.6 3 10.3v2.4c0 3.8 1.9 6.2 4.8 7.2V22c0 .5.6.8 1 .4l2.1-2.1h1.1c5.1 0 9-2.6 9-8.3v-1.7C21 4.6 17.1 2 12 2zm4.6 13.3l-.9.9c-.8.8-2.6.2-4.4-1.6s-2.6-3.6-1.8-4.5l.9-.8c.3-.3.8-.3 1.1 0l1 1.2c.3.3.3.8-.1 1.1l-.5.5c.3.7 1.2 1.8 2.2 2.3l.5-.5c.3-.3.8-.3 1.1 0l1.1 1c.2.4.2.9-.2 1.4zM13 6.5a4.5 4.5 0 014.5 4.5h-1A3.5 3.5 0 0013 7.5zm0 2a2.5 2.5 0 012.5 2.5h-1A1.5 1.5 0 0013 9.5z"/></svg>Viber</a>
       <a id="shWa" class="sh wa" href="https://wa.me/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-2.9.8.8-2.8-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.1 5.1 0 001.1 2.7 11.7 11.7 0 004.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 001.7-1.2 2.2 2.2 0 00.2-1.2c-.1-.1-.3-.2-.5-.3z"/></svg>WhatsApp</a>
     </div>
-    <div class="note" id="shNote" style="text-align:center">Instagram-ը թույլ չի տալիս տեքստը ավտոմատ լրացնել. սեղմելիս գնահաշվարկը պատճենվում է, բացված չատում պարզապես տեղադրեք (Paste)։</div>
+    <div class="note" id="shNote" style="text-align:center">Վերևի կոճակը ուղարկում է գեղեցիկ PDF-ը․ բացված պատուհանում ընտրեք Viber, WhatsApp, Telegram կամ Instagram։</div>
     <button class="btn" id="pdfQ" style="background:#fff;color:#0b1a3a">⬇ Ներբեռնել PDF</button>
     <button class="btn ghost" id="copyQ">Պատճենել գնահաշվարկը</button>
     <pre id="qtext"></pre>
@@ -1229,6 +1231,25 @@ async function makePdf(){
   const safe=(cl||'').replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-|-$/g,'').slice(0,30);
   return {blob:doc.output('blob'),name:`SmartEye-gnahashvark-${no}${safe?'-'+safe:''}.pdf`};
 }
+/* ---------- Send the PDF itself (share sheet) ---------- */
+let pdfCache=null,_pdfT=0,_pdfBusy=false;
+const canShareFiles=()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'x.pdf',{type:'application/pdf'})]}))}catch(e){return false}};
+async function buildPdfCache(){const key=quoteText()+'|'+(promoActive()?promoText():'');if(pdfCache&&pdfCache.key===key)return pdfCache;
+  const {blob,name}=await makePdf();pdfCache={key,file:new File([blob],name.replace(/[^\w.\-]+/g,'_'),{type:'application/pdf'}),blob,name};return pdfCache}
+function schedulePdf(){if(!canShareFiles()||!quoteLines().length)return;clearTimeout(_pdfT);_pdfT=setTimeout(async()=>{if(_pdfBusy)return;_pdfBusy=true;try{await buildPdfCache()}catch(e){}_pdfBusy=false},1200)}
+document.addEventListener('input',schedulePdf);document.addEventListener('click',schedulePdf);
+$('sendPdf').onclick=async()=>{
+  if(!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
+  if(NATIVE){$('pdfQ').click();return}
+  if(!canShareFiles()){toast('Այս բրաուզերը չի կարող ֆայլ ուղարկել․ PDF-ը կներբեռնվի, ուղարկեք այն');$('pdfQ').click();return}
+  const key=quoteText()+'|'+(promoActive()?promoText():'');
+  try{
+    if(pdfCache&&pdfCache.key===key){await navigator.share({files:[pdfCache.file],title:pdfCache.name});return}
+    $('sendPdf').textContent='Պատրաստվում է…';const c=await buildPdfCache();$('sendPdf').textContent='📤 Ուղարկել PDF-ը (Viber, WhatsApp, Telegram…)';
+    try{await navigator.share({files:[c.file],title:c.name})}catch(e){if(e&&e.name==='NotAllowedError')toast('PDF-ը պատրաստ է․ սեղմեք ևս մեկ անգամ')}
+  }catch(e){if(!(e&&e.name==='AbortError'))toast('Չհաջողվեց ուղարկել ('+(e&&e.name||'error')+')')}
+};
+
 $('pdfQ').onclick=async()=>{
   if(!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
   const btn=$('pdfQ');btn.disabled=true;btn.textContent='Պատրաստվում է…';
