@@ -17,6 +17,16 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
+.pj{border:1px solid var(--line);border-radius:11px;padding:8px 10px;margin-top:8px;background:#0b1a3c}
+.pjh b{font-size:14.5px}.pjr{display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px dashed #1d3466;font-size:13.5px}
+.pjr .pjs{width:18px;text-align:center;font-weight:700;color:var(--ok)}.pjr.no .pjs{color:var(--bad)}.pjr.no{opacity:.6}
+.pjr .pjn{flex:1;min-width:0}.pjr .pjn em{font-style:normal;font-size:10.5px;color:#07122b;background:var(--ok);border-radius:6px;padding:1px 5px;margin-left:4px}
+.pjr button{border:1px solid var(--line);background:#132a5a;color:var(--txt);border-radius:8px;padding:5px 8px;font-family:inherit;font-size:12px}
+.pjr button.x{color:var(--bad);padding:5px 7px}.pjr.ch{background:#3ddc9714;border-radius:8px}.pjr.ch button:first-of-type{background:var(--ok);color:#07122b;border-color:var(--ok)}
+.pjadd{margin-top:6px;background:none;border:1px dashed #3a5aa0;color:var(--acc2);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12.5px}
+.pjf{margin-top:6px}.pjf label{display:block;font-size:12px;color:var(--mut)}
+.mini{display:inline-block;padding:7px 9px;border-radius:8px;color:#fff;text-decoration:none;font-size:12px;font-weight:600;margin-left:4px}
+.mini.vb{background:#7360f2}.mini.wa{background:#25d366}.mini.tg{background:#229ed9}
 .diff{font-size:11px;color:var(--ok);font-weight:600;line-height:1.3}
 .prod .pp .df{display:block;color:var(--ok);font-size:11px;font-weight:600}
 .prod{border-bottom:1px solid #16295299}
@@ -173,6 +183,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <div class="f"><label>Զեղչ %</label><input type="number" id="disc" inputmode="decimal" value="0" min="0" max="100"></div>
       <div class="f"><label>Հաճախորդ</label><input type="text" id="client" placeholder="Անուն / հասցե"></div>
     </div>
+    <label class="note" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="promoOn" style="width:auto;margin-top:3px"><span id="promoLbl"></span></label>
     <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">Հաճախորդի Instagram (ըստ ցանկ.)</label><input type="text" id="igUser" placeholder="@username" autocapitalize="off" autocorrect="off"></div>
   </div>
   <div class="card total">
@@ -241,6 +252,23 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
     <button class="btn ghost" id="pMore" type="button" style="display:none">Ցույց տալ ավելին</button>
     <button class="btn" id="pAdd" type="button">＋ Ավելացնել ապրանք ձեռքով</button>
     <div id="pForm" class="pform" style="display:none"></div>
+  </div>
+  <div class="card">
+    <h2>🔎 Նախագծի առկայություն՝ ըստ խանութների</h2>
+    <div class="note" style="margin-top:0">Ընթացիկ գնահաշվարկի ապրանքները։ Հարցրեք մի քանի խանութից, մուտքագրեք պատասխանները, և ծրագիրը ցույց կտա, թե որտեղ կա և ամենաէժանը։</div>
+    <div id="projBox"></div>
+    <div class="grid2" style="margin-top:8px">
+      <button class="btn" id="askShops" type="button" style="margin:0">📨 Հարցնել խանութներին</button>
+      <button class="btn ghost" id="pasteShop" type="button" style="margin:0">📥 Պատասխան</button>
+    </div>
+    <div id="shopAskPanel" class="pform" style="display:none;margin-top:10px"></div>
+    <div id="shopReplyPanel" class="pform" style="display:none;margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h2>🏪 Խանութներ / մատակարարներ</h2>
+    <div id="shopList"></div>
+    <button class="btn ghost" id="shopAdd" type="button">＋ Ավելացնել խանութ</button>
+    <div id="shopForm" class="pform" style="display:none"></div>
   </div>
 </section>
 
@@ -327,6 +355,8 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
   <div class="card">
     <h2>Գնահաշվարկի ստորագրություն</h2>
     <input type="text" id="sign">
+    <h2 style="margin-top:14px">Ակցիա / պայմաններ (PDF-ի ներքևում)</h2>
+    <textarea id="promoText" rows="3" style="width:100%;background:#0a1736;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px;font-family:inherit;font-size:14px"></textarea>
   </div>
 </section>
 </main>
@@ -569,6 +599,7 @@ function renderCart(){
     sb.onclick=()=>{c.st=c.st===''||!c.st?'ok':c.st==='ok'?'no':'';LS.set('cart',cart);paint();stockNote()};
     r.querySelector('.n').textContent=c.n;
     if(c.s&&lists.length>1){const t=document.createElement('span');t.className='tag';t.textContent=c.s;r.querySelector('.n').prepend(t)}
+    if(c.src){const t=document.createElement('span');t.className='tag';t.style.background='#3ddc9733';t.style.color='var(--ok)';t.textContent='🏪 '+c.src;r.querySelector('.n').prepend(t)}
     if(c.d===undefined)c.d=specOf(c.n+' '+(c.k||''));
     const di=document.createElement('input');di.type='text';di.className='spec';di.value=c.d;di.placeholder='Տեսակ, MP… (օր․ IP տեսախցիկ · 4MP)';
     di.oninput=()=>{c.d=di.value;LS.set('cart',cart);calcQuote()};r.querySelector('.n').appendChild(di);
@@ -646,7 +677,7 @@ $('askBtn').onclick=()=>{
   const pnl=$('askPanel');
   if(pnl.style.display==='block'){pnl.style.display='none';return}
   pnl.innerHTML='';
-  const groups={};cart.filter(c=>c.q>0&&c.st!=='ok').forEach(c=>{(groups[c.s||'Մատակարար']=groups[c.s||'Մատակարար']||[]).push(c)});
+  const groups={};cart.filter(c=>c.q>0&&c.st!=='ok').forEach(c=>{const g=c.src||c.s||'Մատակարար';(groups[g]=groups[g]||[]).push(c)});
   const keys=Object.keys(groups);
   if(!keys.length){pnl.innerHTML='<div class="note">Բոլոր ապրանքները արդեն նշված են որպես առկա ✓</div>';pnl.style.display='block';return}
   keys.forEach(k=>{
@@ -936,6 +967,17 @@ function renderProfit(pf){
 }
 $('pfBtn').onclick=()=>{showPf=!showPf;LS.set('showPf',showPf);calcQuote()};
 
+/* ---------- Promo / terms ---------- */
+const PROMO_DEF='Ակցիա․ 6 ամիս անվճար սպասարկում։ Դրանից հետո յուրաքանչյուր այց՝ 10 000 ֏ + աշխատանքի արժեքը։';
+$('promoText').value=LS.get('promoText',PROMO_DEF);
+$('promoOn').checked=LS.get('promoOn',true);
+const promoText=()=>($('promoText').value||'').trim();
+function promoUI(){$('promoLbl').textContent='Ներառել՝ '+(promoText()||'(դատարկ է՝ լրացրեք «Կարգավոր.»-ում)')}
+promoUI();
+$('promoText').oninput=()=>{LS.set('promoText',$('promoText').value);promoUI();pushSettingsSoon()};
+$('promoOn').onchange=()=>{LS.set('promoOn',$('promoOn').checked);calcQuote()};
+const promoActive=()=>$('promoOn').checked&&!!promoText();
+
 function quoteLines(){
   const L=[];
   cart.forEach(c=>{if(c.q>0)L.push({n:c.n,d:c.d||'',q:c.q,u:'հատ',p:c.p,cost:c.cost==null?null:c.cost,kind:'prod'})});
@@ -967,7 +1009,9 @@ function quoteText(){
   t+='\n\n';
   L.forEach(l=>{t+=`• ${l.n}${l.d?' ('+l.d+')':''} — ${l.q}${l.u?' '+l.u:''} × ${fmt(l.p)} = ${fmt(l.q*l.p)}\n`});
   if(d>0)t+=`\nԳումար՝ ${fmt(sub)}\nԶեղչ՝ ${d}%`;
-  t+=`\nԸՆԴԱՄԵՆԸ՝ ${fmt(tot)}\n\n${$('sign').value}`;
+  t+=`\nԸՆԴԱՄԵՆԸ՝ ${fmt(tot)}\n`;
+  if(promoActive())t+=`\n🎁 ${promoText()}\n`;
+  t+=`\n${$('sign').value}`;
   return t;
 }
 function igHandle(){return ($('igUser').value||'').trim().replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/[/?].*$/,'')}
@@ -1088,6 +1132,13 @@ async function makePdf(){
   doc.setFillColor(...navy);doc.roundedRect(W-M-80,y-2,80,11,2,2,'F');
   doc.setFont('Arm','bold');doc.setFontSize(12);doc.setTextColor(255,255,255);
   doc.text('ԸՆԴԱՄԵՆԸ',W-M-76,y+5.5);doc.text(P(tot),W-M-3,y+5.5,{align:'right'});
+  if(promoActive()){
+    y+=18;doc.setFont('Arm','normal');doc.setFontSize(10);
+    const pl=doc.splitTextToSize(promoText(),W-2*M-10);const ph=pl.length*5+6;
+    if(y+ph>272){doc.addPage();y=20}
+    doc.setFillColor(232,244,255);doc.setDrawColor(...blue);doc.setLineWidth(0.4);doc.roundedRect(M,y-4,W-2*M,ph,2,2,'FD');
+    doc.setTextColor(...navy);doc.text(pl,M+5,y+1.5);y+=ph;
+  }
   // footer
   doc.setFont('Arm','normal');doc.setFontSize(8.5);doc.setTextColor(...grey);
   const pages=doc.getNumberOfPages();
@@ -1192,6 +1243,121 @@ function renderTrash(){
   b.appendChild(d);
 }
 
+/* ---------- Shops & per-project offers ---------- */
+let shops=LS.get('shops',[]);
+const saveShops=()=>{LS.set('shops',shops);pushSettingsSoon()};
+const telDigits=t=>String(t||'').replace(/[^\d]/g,'').replace(/^0(\d{8})$/,'374$1');
+function renderShops(){
+  const b=$('shopList');b.innerHTML='';
+  if(!shops.length){b.innerHTML='<div class="note" style="margin-top:0">Ավելացրեք այն խանութները/ներմուծողներին, որոնցից գնում եք (անուն, հեռախոս/Viber, Telegram)։</div>'}
+  shops.forEach((sh,i)=>{
+    const r=document.createElement('div');r.className='lst';
+    r.innerHTML='<div class="n"><b></b><small></small></div><button type="button" class="btn ghost sm">✎</button><button class="del" type="button">×</button>';
+    r.querySelector('b').textContent=sh.name;r.querySelector('small').textContent=[sh.phone,sh.tg?'@'+sh.tg.replace(/^@/,''):'',sh.note].filter(Boolean).join(' · ');
+    r.querySelector('.btn').onclick=()=>shopForm(i);
+    const d=r.querySelector('.del');d.onclick=()=>{if(!d.dataset.c){d.dataset.c=1;d.textContent='Ջնջե՞լ';d.style.width='auto';d.style.fontSize='13px';return}shops.splice(i,1);saveShops();renderShops()};
+    b.appendChild(r);
+  });
+}
+function shopForm(i){
+  const f=$('shopForm');const sh=i!=null?shops[i]:{name:'',phone:'',tg:'',note:''};
+  f.innerHTML=`<label>Անուն<input type="text" class="s_n" placeholder="օր․ Gloria, DGcomputers, Arena"></label>
+    <div class="grid2"><label>Հեռախոս / Viber / WhatsApp<input type="tel" class="s_p" placeholder="0XX XXXXXX"></label><label>Telegram<input type="text" class="s_t" placeholder="@username"></label></div>
+    <label>Նշում<input type="text" class="s_o" placeholder="օր․ Hikvision, մենեջեր Արամ"></label>
+    <button type="button" class="btn s_save">${i!=null?'Պահպանել':'Ավելացնել'}</button>`;
+  f.style.display='block';const q=c=>f.querySelector(c);
+  q('.s_n').value=sh.name;q('.s_p').value=sh.phone||'';q('.s_t').value=sh.tg||'';q('.s_o').value=sh.note||'';
+  q('.s_save').onclick=()=>{const n=q('.s_n').value.trim();if(!n){toast('Գրեք անունը');return}
+    const o={name:n,phone:q('.s_p').value.trim(),tg:q('.s_t').value.trim().replace(/^@/,''),note:q('.s_o').value.trim()};
+    if(i!=null)shops[i]=o;else shops.push(o);saveShops();f.style.display='none';renderShops();renderProj();toast('Պահպանվեց ✓')};
+}
+$('shopAdd').onclick=()=>{const f=$('shopForm');if(f.style.display==='block'){f.style.display='none';return}shopForm(null)};
+
+function bestOffer(c){const ok=(c.offers||[]).filter(o=>o.st!=='no'&&o.price>0);return ok.sort((a,b)=>a.price-b.price)[0]||null}
+function renderProj(){
+  const b=$('projBox');if(!b)return;b.innerHTML='';
+  if(!cart.length){b.innerHTML='<div class="note">Գնահաշվարկը դատարկ է։ Նախ ավելացրեք ապրանքներ «Հաշվարկ» էջում կամ այստեղից՝ «＋ Գնահաշվարկ»։</div>';return}
+  let total=0,allChosen=true;
+  cart.forEach((c,ci)=>{
+    const d=document.createElement('div');d.className='pj';
+    const best=bestOffer(c);
+    d.innerHTML=`<div class="pjh"><b>${esc(modelOf(c))}</b> <span class="sub">× ${c.q}</span></div><div class="pjo"></div><button type="button" class="pjadd">＋ Առաջարկ</button><div class="pjf" style="display:none"></div>`;
+    const ob=d.querySelector('.pjo');
+    (c.offers||[]).slice().sort((a,b)=>(a.st==='no')-(b.st==='no')||(a.price||1e12)-(b.price||1e12)).forEach(o=>{
+      const r=document.createElement('div');const chosen=c.src===o.shop;
+      r.className='pjr'+(o.st==='no'?' no':'')+(chosen?' ch':'');
+      r.innerHTML=`<span class="pjs">${o.st==='no'?'✗':o.st==='ok'?'✓':'?'}</span><span class="pjn">${esc(o.shop)}${best&&best===o?' <em>ամենաէժան</em>':''}</span><b>${o.price?fmt(o.price):'—'}</b><button type="button">${chosen?'★':'Ընտրել'}</button><button type="button" class="x">×</button>`;
+      const [sel,del]=r.querySelectorAll('button');
+      sel.onclick=()=>{c.src=o.shop;if(o.price)c.cost=o.price;c.st=o.st||'ok';LS.set('cart',cart);renderCart();calcQuote();renderProj();toast(`${o.shop} — ընտրված է, իմ գինը ${o.price?fmt(o.price):'—'}`)};
+      del.onclick=()=>{c.offers=c.offers.filter(x=>x!==o);if(c.src===o.shop)delete c.src;LS.set('cart',cart);renderProj()};
+      ob.appendChild(r);
+    });
+    if(!(c.offers||[]).length)ob.innerHTML='<div class="note" style="margin:2px 0">Դեռ պատասխան չկա</div>';
+    const ch=(c.offers||[]).find(o=>o.shop===c.src);if(ch&&ch.price)total+=ch.price*c.q;else allChosen=false;
+    d.querySelector('.pjadd').onclick=()=>{
+      const f=d.querySelector('.pjf');if(f.style.display==='block'){f.style.display='none';return}
+      const opts=shops.map(x=>`<option>${esc(x.name)}</option>`).join('')+'<option value="__new">＋ այլ խանութ…</option>';
+      f.innerHTML=`<div class="grid2"><label>Խանութ<select class="o_s">${opts}</select></label><label class="o_nw" style="display:none">Անուն<input type="text" class="o_n"></label></div>
+        <div class="grid2"><label>Գին ֏<input type="number" inputmode="numeric" class="o_p"></label><label>Առկա՞<select class="o_t"><option value="ok">✓ Կա</option><option value="no">✗ Չկա</option><option value="">? Չգիտեմ</option></select></label></div>
+        <button type="button" class="btn o_save">Ավելացնել</button>`;
+      f.style.display='block';const q=x=>f.querySelector(x);
+      const tg=()=>{q('.o_nw').style.display=q('.o_s').value==='__new'?'block':'none'};tg();q('.o_s').onchange=tg;
+      q('.o_save').onclick=()=>{let shop=q('.o_s').value;if(shop==='__new'){shop=q('.o_n').value.trim();if(!shop){toast('Գրեք խանութի անունը');return}if(!shops.some(x=>x.name===shop)){shops.push({name:shop});saveShops();renderShops()}}
+        c.offers=(c.offers||[]).filter(o=>o.shop!==shop);c.offers.push({shop,price:+q('.o_p').value||0,st:q('.o_t').value,at:Date.now()});
+        LS.set('cart',cart);renderProj()};
+    };
+    b.appendChild(d);
+  });
+  const sm=document.createElement('div');sm.className='note';
+  sm.innerHTML=allChosen?`Ընտրված առաջարկներով իմ ծախսը՝ <b style="color:var(--txt)">${fmt(total)}</b>`:'★ «Ընտրել» սեղմելով տվյալ խանութի գինը դառնում է «Իմ գինը» գնահաշվարկում։';
+  b.appendChild(sm);
+}
+function shopMsg(){let t='Բարև Ձեզ։ Խնդրում եմ ասել՝ առկա՞ են և ի՞նչ գնով․\n\n';cart.forEach((c,i)=>{t+=`${i+1}. ${modelOf(c)} — ${c.q} հատ\n`});t+='\nՇնորհակալություն,\n'+(($('sign').value||'SmartEye System').split('·')[0].trim());return t}
+$('askShops').onclick=()=>{
+  const p=$('shopAskPanel');if(p.style.display==='block'){p.style.display='none';return}
+  if(!cart.length){toast('Գնահաշվարկը դատարկ է');return}
+  const t=shopMsg();p.innerHTML=`<pre class="askpre"></pre><div class="sub" style="margin-top:8px">Ուղարկել՝</div><div class="shs"></div>`;p.querySelector('pre').textContent=t;
+  const box=p.querySelector('.shs');
+  const enc=encodeURIComponent(t);
+  const cpy=()=>{try{navigator.clipboard.writeText(t).then(()=>toast('Պատճենված է ✓'),()=>{})}catch(e){}};
+  (shops.length?shops:[{name:'Ցանկացած'}]).forEach(sh=>{
+    const r=document.createElement('div');r.className='lst';const ph=telDigits(sh.phone);
+    r.innerHTML=`<div class="n"><b></b></div>`+
+      `<a class="mini vb" target="_blank" rel="noopener" href="${ph?'viber://chat?number=%2B'+ph:'viber://forward?text='+enc}">Viber</a>`+
+      `<a class="mini wa" target="_blank" rel="noopener" href="${'https://wa.me/'+(ph||'')+'?text='+enc}">WA</a>`+
+      `<a class="mini tg" target="_blank" rel="noopener" href="${sh.tg?'https://t.me/'+encodeURIComponent(sh.tg):'https://t.me/share/url?url=%20&text='+enc}">TG</a>`;
+    r.querySelector('b').textContent=sh.name;r.querySelectorAll('a').forEach(a=>a.addEventListener('click',cpy));box.appendChild(r);
+  });
+  const n=document.createElement('div');n.className='note';n.textContent='Viber/Telegram-ում տեքստը պատճենված է՝ չատում սեղմեք Paste։ WhatsApp-ում տեքստը լրացվում է ինքնին։';p.appendChild(n);
+  p.style.display='block';
+};
+function parseOfferPrice(line){
+  const l=line.replace(/\b\d+\s*(հատ|шт|pcs|pc|mp|мп|tb|тб|gb|ch|կանալ)\b/gi,' ');
+  let m=l.match(/(\$|usd)\s*(\d+(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)\s*(\$|usd|դոլ|долл)/i);
+  if(m){const v=parseFloat((m[2]||m[3]).replace(',','.'));return Math.round(v*(LS.get('usdRate',390)||390))}
+  const nums=(l.match(/\d[\d\s.,]*\d|\d/g)||[]).map(x=>parsePrice(x)).filter(v=>v>=500);
+  return nums.length?nums[nums.length-1]:0;
+}
+$('pasteShop').onclick=()=>{
+  const p=$('shopReplyPanel');if(p.style.display==='block'){p.style.display='none';return}
+  if(!cart.length){toast('Գնահաշվարկը դատարկ է');return}
+  const opts=shops.map(x=>`<option>${esc(x.name)}</option>`).join('')+'<option value="__new">＋ այլ խանութ…</option>';
+  p.innerHTML=`<div class="grid2"><label>Որ խանութից<select class="r_s">${opts}</select></label><label class="r_nw" style="display:none">Անուն<input type="text" class="r_n"></label></div>
+    <label>Պատասխանը (պատճենեք Viber/Telegram-ից)<textarea class="r_t" rows="5" style="width:100%;margin-top:4px;background:#0a1736;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px;font-family:inherit;font-size:14px" placeholder="օր․ 1043 կա 17500, 7608 չկա"></textarea></label>
+    <button type="button" class="btn r_go">Կիրառել</button><div class="note r_res"></div>`;
+  p.style.display='block';const q=x=>p.querySelector(x);
+  const tg=()=>{q('.r_nw').style.display=q('.r_s').value==='__new'?'block':'none'};tg();q('.r_s').onchange=tg;
+  q('.r_go').onclick=()=>{
+    let shop=q('.r_s').value;if(shop==='__new'){shop=q('.r_n').value.trim();if(!shop){toast('Գրեք խանութի անունը');return}if(!shops.some(x=>x.name===shop)){shops.push({name:shop});saveShops();renderShops()}}
+    const text=q('.r_t').value;const lines=String(text).split(/\n|;|,(?=\s*\D)/).map(x=>x.trim()).filter(Boolean);const res=[];
+    cart.forEach(c=>{const keys=itemKeys(c);for(const ln of lines){const lc=cmp(ln);if(keys.some(k=>lc.includes(k))){const st=lineStatus(ln);let ln2=ln.replace(new RegExp(modelOf(c).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig'),' ');(modelOf(c).match(/\d{3,}/g)||[]).forEach(dg=>{ln2=ln2.replace(new RegExp('\\b\\w*'+dg+'\\w*\\b','g'),' ')});const price=st==='no'?0:parseOfferPrice(ln2);
+      if(st||price){c.offers=(c.offers||[]).filter(o=>o.shop!==shop);c.offers.push({shop,price,st:st||(price?'ok':''),at:Date.now()});res.push(`${st==='no'?'✗':'✓'} ${modelOf(c)}${price?' — '+fmt(price):''}`)}break}}});
+    if(!res.length&&/բոլոր|все|all/i.test(text)){const st=lineStatus(text);if(st)cart.forEach(c=>{c.offers=(c.offers||[]).filter(o=>o.shop!==shop);c.offers.push({shop,price:0,st,at:Date.now()});res.push((st==='ok'?'✓ ':'✗ ')+modelOf(c))})}
+    LS.set('cart',cart);renderProj();
+    q('.r_res').innerHTML=res.length?`${esc(shop)}՝<br>${res.map(esc).join('<br>')}`:'Չհաջողվեց հասկանալ պատասխանը․ ավելացրեք «＋ Առաջարկ»-ով կամ ուղարկեք Claude-ին։';
+  };
+};
+
 /* ---------- Products page ---------- */
 let pFilter=LS.get('pFilter',''), pLimit=50, pOpen=null;
 const _pushT={};
@@ -1286,7 +1452,7 @@ const CLOUD={sb:null,user:null,offline:false};
 const cloudOn=()=>!!(CLOUD.sb&&CLOUD.user&&!CLOUD.offline);
 function cst(state,txt){const e=$('cloudSt');e.className='cst '+(state||'');e.textContent=txt||'';}
 function cloudErr(e,where){console.warn(where,e);cst('err','Սխալ');toast('Համաժամեցման սխալ'+(e&&e.message?': '+e.message.slice(0,60):''))}
-function settingsData(){return {prices,sign:$('sign').value,mk:$('m_mk').value,usdRate:LS.get('usdRate',390),trash:LS.get('trash',[])}}
+function settingsData(){return {promoText:$('promoText').value,prices,sign:$('sign').value,mk:$('m_mk').value,usdRate:LS.get('usdRate',390),trash:LS.get('trash',[]),shops}}
 let _setT=0;
 function pushSettingsSoon(){if(!cloudOn())return;clearTimeout(_setT);_setT=setTimeout(async()=>{cst('busy','…');
   const {error}=await CLOUD.sb.from('pm_settings').upsert({user_id:CLOUD.user.id,data:settingsData(),updated_at:new Date().toISOString()});
@@ -1310,6 +1476,8 @@ async function pullAll(){
       if(d.sign!=null){$('sign').value=d.sign;LS.set('sign',d.sign)}
       if(d.mk!=null){$('m_mk').value=d.mk;LS.set('m_mk',d.mk)}
       if(d.usdRate){LS.set('usdRate',d.usdRate)}
+      if(d.promoText!=null){$('promoText').value=d.promoText;LS.set('promoText',d.promoText);promoUI()}
+      if(Array.isArray(d.shops)){shops=d.shops;LS.set('shops',shops);renderShops()}
       if(Array.isArray(d.trash)&&d.trash.length){const loc=LS.get('trash',[]);const all=d.trash.concat(loc.filter(x=>!d.trash.some(y=>y.at===x.at)));LS.set('trash',all.sort((a,b)=>b.at.localeCompare(a.at)).slice(0,8));catUI()}
       renderPrices();renderItems();calcQuote();
     }else pushSettingsSoon();
@@ -1352,7 +1520,7 @@ $('syncNow').onclick=()=>pullAll();
 // quote history (cloud when signed in, otherwise this device)
 let editId=LS.get('editId',null), hist=[];
 function snapshot(){const {tot}=calcQuote();return {client:$('client').value.trim(),total:Math.round(tot),
-  data:{client:$('client').value,ig:$('igUser').value,disc:+$('disc').value||0,cart,qty,customs,lines:quoteLines(),profit:Math.round(calcQuote().pf.profit)}}}
+  data:{client:$('client').value,ig:$('igUser').value,disc:+$('disc').value||0,cart,qty,customs,promo:promoActive()?promoText():'',lines:quoteLines(),profit:Math.round(calcQuote().pf.profit)}}}
 function editInfo(){$('editInfo').textContent=editId?'Խմբագրվում է պահպանված գնահաշվարկ':'';}
 $('saveQ').onclick=async()=>{
   if(!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
@@ -1421,7 +1589,7 @@ function show(v){
   if(!views.includes(v))v='quote';
   if(v==='hdd'||v==='poe')v='tools';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v||(v==='tools'&&e.classList.contains('tools-view'))));
-  if(v==='prod')renderProd();
+  if(v==='prod'){renderProd();renderProj();renderShops()}
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   window.scrollTo(0,0);
 }
