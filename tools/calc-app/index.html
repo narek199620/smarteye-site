@@ -17,6 +17,17 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
+.cstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.cstat{background:#0a1736;border:1px solid var(--line);border-radius:11px;padding:8px;text-align:center}.cstat b{display:block;font-size:20px}.cstat small{color:var(--mut);font-size:11.5px}
+.cli{display:flex;gap:8px;align-items:center;padding:10px 2px;border-bottom:1px solid #16295299;cursor:pointer}
+.cli .n{flex:1;min-width:0}.cli .n b{display:block;font-size:15px}.cli .n small{display:block;color:var(--mut);font-size:12px}
+.badge2{font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap;flex:none}
+.badge2.ok{background:#3ddc9726;color:var(--ok)}.badge2.warn{background:#ffb54726;color:var(--warn)}.badge2.off{background:#8ea3cf22;color:var(--mut)}
+.ev{border-left:3px solid var(--acc);background:#0a1736;border-radius:0 10px 10px 0;padding:8px 10px;margin-top:8px;font-size:13.5px}
+.ev.v{border-left-color:var(--ok)}.ev b{font-size:14px}.ev small{color:var(--mut);display:block}
+.ev .acts{margin-top:6px;display:flex;gap:6px}.ev .acts button{border:1px solid var(--line);background:#132a5a;color:var(--txt);border-radius:8px;padding:4px 9px;font-family:inherit;font-size:12px}
+.cform label{display:block;font-size:12.5px;color:var(--mut);margin-top:6px}.cform input,.cform textarea,.cform select{margin-top:3px}
+.cform textarea{width:100%;background:#0a1736;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px;font-family:inherit;font-size:14px}
 .vtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
 .vtab{background:#0a1736;border:1px solid var(--line);border-radius:12px;padding:8px 4px;color:var(--txt);font-family:inherit;text-align:center}
 .vtab b{display:block;font-size:13.5px}.vtab small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
@@ -236,6 +247,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
       <button class="btn ghost" id="newQ" type="button" style="margin:0">＋ Նոր</button>
     </div>
     <div class="sub" id="editInfo" style="text-align:center;margin-top:6px"></div>
+    <button class="btn ghost" id="toClient" type="button" style="border-color:#3ddc97;color:#3ddc97">✅ Պատվերը ընդունվեց → հաճախորդների ցուցակ</button>
     <button class="btn ghost" id="resetQ">Զրոյացնել քանակները</button>
   </div>
 </section>
@@ -308,6 +320,19 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
   </div>
 </section>
 
+<!-- ============ ՀԱՃԱԽՈՐԴՆԵՐ ============ -->
+<section class="view" id="v-cli">
+  <div class="card">
+    <h2>👥 Հաճախորդներ և տեղադրումներ</h2>
+    <div id="cliStats" class="cstats"></div>
+    <div class="chips" id="cliChips"></div>
+    <input type="search" id="cliSearch" placeholder="Որոնել՝ անուն, հեռախոս, հասցե, մոդել…">
+    <div id="cliList" style="margin-top:6px"></div>
+    <button class="btn" id="cliAdd" type="button">＋ Նոր հաճախորդ</button>
+  </div>
+  <div class="card" id="cliCard" style="display:none"></div>
+</section>
+
 <!-- ============ ՊԱՏՄՈՒԹՅՈՒՆ ============ -->
 <section class="view" id="v-hist">
   <div class="card">
@@ -376,6 +401,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
 
 <!-- ============ ԳՆԵՐ ============ -->
 <section class="view" id="v-set">
+  <div class="card"><h2>🛠 Գործիքներ</h2><a href="#tools" class="btn ghost" style="text-align:center;text-decoration:none">💾 HDD արխիվ · ⚡ PoE հաշվիչներ</a></div>
   <div class="card" id="acctCard" style="display:none">
     <h2>Հաշիվ և համաժամեցում</h2>
     <div id="acct" class="sub"></div>
@@ -400,8 +426,8 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
 <nav>
   <button class="on" data-v="quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>Հաշվարկ</button>
   <button data-v="prod"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>Ապրանքներ</button>
+  <button data-v="cli"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2c3 .2 5.5 2 5.5 4.8"/></svg>Հաճախորդներ</button>
   <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Պատմություն</button>
-  <button data-v="tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Գործիքներ</button>
   <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Կարգավոր.</button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -1758,6 +1784,123 @@ $('pAdd').onclick=()=>{
   };
 };
 
+/* ---------- Clients, installations, service visits ---------- */
+let clients=LS.get('clients',[]);
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+const today=()=>new Date().toISOString().slice(0,10);
+const dfmt=d=>{if(!d)return '';const x=new Date(d);return `${String(x.getDate()).padStart(2,'0')}.${String(x.getMonth()+1).padStart(2,'0')}.${x.getFullYear()}`};
+const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+(+m||0));return x};
+const monthsBetween=(a,b)=>{const x=new Date(a),y=new Date(b);return (y.getFullYear()-x.getFullYear())*12+(y.getMonth()-x.getMonth())-(y.getDate()<x.getDate()?1:0)};
+const ago=d=>{const m=monthsBetween(d,new Date());if(m<1){const days=Math.floor((Date.now()-new Date(d))/864e5);return days<=0?'այսօր':days+' օր առաջ'}return m>=12?`${Math.floor(m/12)} տ. ${m%12?m%12+' ամ. ':''}առաջ`:m+' ամիս առաջ'};
+let cliFilter=LS.get('cliFilter',''),cliOpen=null;
+async function saveClient(c){c.updated=new Date().toISOString();const i=clients.findIndex(x=>x.id===c.id);if(i>=0)clients[i]=c;else clients.unshift(c);LS.set('clients',clients);
+  if(cloudOn()){const {error}=await CLOUD.sb.from('clients').upsert({id:c.id,user_id:CLOUD.user.id,data:c,updated_at:c.updated});if(error)cloudErr(error,'client')}}
+async function delClient(id){clients=clients.filter(x=>x.id!==id);LS.set('clients',clients);if(cloudOn()){const {error}=await CLOUD.sb.from('clients').delete().eq('id',id);if(error)cloudErr(error,'delclient')}}
+async function pullClients(){if(!cloudOn())return;const {data,error}=await CLOUD.sb.from('clients').select('id,data');if(error){cloudErr(error,'clients');return}
+  if(data.length){clients=data.map(r=>Object.assign({id:r.id},r.data));LS.set('clients',clients)}else if(clients.length){for(const c of clients)await saveClient(c)}
+  if($('v-cli').classList.contains('on'))renderClients()}
+function cliStatus(c){ // free-service window from the latest installation
+  const inst=(c.inst||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];if(!inst||!inst.date)return {cls:'off',txt:'տեղադրում չկա'};
+  const end=addMonths(inst.date,inst.free??6);const left=monthsBetween(new Date(),end);
+  if(new Date()<end)return {cls:left<=1?'warn':'ok',txt:left<1?`անվճար՝ մինչև ${dfmt(end)}`:`անվճար՝ ${left} ամիս`,end,inst};
+  return {cls:'off',txt:'վճարովի',end,inst};
+}
+const camsOf=c=>(c.inst||[]).reduce((a,i)=>a+(+i.cams||0),0);
+function renderClients(){
+  const q=norm($('cliSearch').value);
+  const st=clients.map(c=>({c,s:cliStatus(c)}));
+  const nFree=st.filter(x=>x.s.cls==='ok'||x.s.cls==='warn').length,nSoon=st.filter(x=>x.s.cls==='warn').length;
+  $('cliStats').innerHTML=`<div class="cstat"><b>${clients.length}</b><small>հաճախորդ</small></div><div class="cstat"><b>${clients.reduce((a,c)=>a+camsOf(c),0)}</b><small>տեսախցիկ տեղադրված</small></div><div class="cstat"><b>${nFree}</b><small>անվճար սպասարկման մեջ</small></div>`;
+  const ch=$('cliChips');ch.innerHTML='';[['','Բոլորը'],['free','🟢 Անվճար'],['soon',`🟠 Շուտով ավարտվում է${nSoon?' · '+nSoon:''}`],['paid','⚪ Վճարովի']].forEach(([f,l])=>{const b=document.createElement('button');b.type='button';b.className='chip'+(cliFilter===f?' on':'');b.textContent=l;b.onclick=()=>{cliFilter=f;LS.set('cliFilter',f);renderClients()};ch.appendChild(b)});
+  const list=st.filter(({c,s})=>(!cliFilter||(cliFilter==='free'&&(s.cls==='ok'||s.cls==='warn'))||(cliFilter==='soon'&&s.cls==='warn')||(cliFilter==='paid'&&s.cls==='off'))
+    &&(!q||norm([c.name,c.phone,c.addr,c.note,...(c.inst||[]).map(i=>i.items+' '+i.work),...(c.visits||[]).map(v=>v.work)].join(' ')).includes(q)))
+    .sort((a,b)=>String(b.c.updated||'').localeCompare(String(a.c.updated||'')));
+  const box=$('cliList');box.innerHTML='';
+  if(!list.length)box.innerHTML=`<div class="note">${clients.length?'Չի գտնվել':'Դեռ հաճախորդ չկա։ Ավելացրեք «＋ Նոր հաճախորդ»-ով կամ գնահաշվարկից՝ «✅ Պատվերը ընդունվեց»։'}</div>`;
+  list.forEach(({c,s})=>{const r=document.createElement('div');r.className='cli';const lv=(c.visits||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+    r.innerHTML=`<div class="n"><b></b><small></small></div><span class="badge2 ${s.cls}"></span>`;
+    r.querySelector('b').textContent=c.name||'Առանց անվան';
+    r.querySelector('small').textContent=[c.addr,camsOf(c)?camsOf(c)+' տեսախցիկ':'',s.inst?'տեղադրվել է '+ago(s.inst.date):'',lv?'վերջին այց՝ '+dfmt(lv.date):''].filter(Boolean).join(' · ');
+    r.querySelector('.badge2').textContent=s.txt;r.onclick=()=>openClient(c.id);box.appendChild(r)});
+}
+function openClient(id){
+  const c=id?clients.find(x=>x.id===id):{id:uid(),name:'',phone:'',addr:'',note:'',inst:[],visits:[],created:new Date().toISOString()};
+  if(!c)return;cliOpen=c.id;const card=$('cliCard');card.style.display='block';
+  const s=cliStatus(c);const ph=telDigits(c.phone);
+  card.innerHTML=`<h2>${id?'👤 '+esc(c.name||'Հաճախորդ'):'＋ Նոր հաճախորդ'}</h2>
+   <div class="cform"><label>Անուն / օբյեկտ<input type="text" class="c_n" placeholder="օր․ Արամ Պետրոսյան / Խանութ «Արարատ»"></label>
+   <div class="grid2"><label>Հեռախոս<input type="tel" class="c_p" placeholder="0XX XXXXXX"></label><label>Հասցե<input type="text" class="c_a" placeholder="Աշտարակ, …"></label></div>
+   <label>Նշումներ (NVR գաղտնաբառ չգրել)<textarea class="c_o" rows="2"></textarea></label>
+   <div class="grid2" style="margin-top:8px"><button type="button" class="btn c_save" style="margin:0">💾 Պահպանել</button><button type="button" class="btn ghost c_close" style="margin:0">Փակել</button></div>
+   ${ph?`<div class="grid3"><a class="btn ghost" style="text-align:center;text-decoration:none;font-size:13px" href="tel:+${ph}">📞 Զանգ</a><a class="btn ghost" style="text-align:center;text-decoration:none;font-size:13px" target="_blank" href="viber://chat?number=%2B${ph}">Viber</a><a class="btn ghost" style="text-align:center;text-decoration:none;font-size:13px" target="_blank" href="https://wa.me/${ph}">WhatsApp</a></div>`:''}</div>
+   ${id?`<div class="sub" style="margin-top:12px">Կարգավիճակ՝ <span class="badge2 ${s.cls}">${esc(s.txt)}</span>${s.end?` · ակցիան ${s.cls==='off'?'ավարտվել է':'մինչև'} ${dfmt(s.end)}`:''}</div>
+   <h2 style="margin-top:14px">🛠 Տեղադրումներ</h2><div class="c_inst"></div><button type="button" class="pjadd c_addi">＋ Տեղադրում</button>
+   <h2 style="margin-top:14px">🔧 Սպասարկում / այցեր</h2><div class="c_vis"></div><button type="button" class="pjadd c_addv">＋ Այց / աշխատանք</button>
+   <div class="c_form"></div>
+   <button type="button" class="btn ghost c_del" style="color:var(--bad);margin-top:16px">Ջնջել հաճախորդին</button>`:''}`;
+  const q=x=>card.querySelector(x);
+  q('.c_n').value=c.name||'';q('.c_p').value=c.phone||'';q('.c_a').value=c.addr||'';q('.c_o').value=c.note||'';
+  q('.c_save').onclick=async()=>{c.name=q('.c_n').value.trim();if(!c.name){toast('Գրեք անունը');return}c.phone=q('.c_p').value.trim();c.addr=q('.c_a').value.trim();c.note=q('.c_o').value.trim();await saveClient(c);toast('Պահպանվեց ✓');renderClients();openClient(c.id)};
+  q('.c_close').onclick=()=>{card.style.display='none';cliOpen=null};
+  if(!id){card.scrollIntoView({behavior:'smooth'});return}
+  // installations
+  const ib=q('.c_inst');(c.inst||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(it=>{
+    const end=addMonths(it.date,it.free??6);const d=document.createElement('div');d.className='ev';
+    d.innerHTML=`<b>${dfmt(it.date)} · ${it.cams||0} տեսախցիկ</b><small>${esc(ago(it.date))} · անվճար սպասարկում մինչև ${dfmt(end)} (${it.free??6} ամիս)${it.price?' · '+fmt(it.price):''}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(it.items||'')}</div>${it.work?`<div style="color:var(--acc2);margin-top:3px">${esc(it.work)}</div>`:''}<div class="acts"><button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
+    d.querySelector('.e').onclick=()=>instForm(c,it);
+    const x=d.querySelector('.x');x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent='Ջնջե՞լ';return}c.inst=c.inst.filter(z=>z!==it);await saveClient(c);openClient(c.id);renderClients()};
+    ib.appendChild(d)});
+  if(!(c.inst||[]).length)ib.innerHTML='<div class="note">Դեռ տեղադրում չկա</div>';
+  const vb=q('.c_vis');(c.visits||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(v=>{
+    const d=document.createElement('div');d.className='ev v';const free=v.paid?'':'անվճար';
+    d.innerHTML=`<b>${dfmt(v.date)}</b><small>${esc(ago(v.date))} · ${v.paid?'վճարովի '+fmt(v.amount||0):'անվճար (ակցիա)'}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(v.work||'')}</div><div class="acts"><button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
+    d.querySelector('.e').onclick=()=>visitForm(c,v);
+    const x=d.querySelector('.x');x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent='Ջնջե՞լ';return}c.visits=c.visits.filter(z=>z!==v);await saveClient(c);openClient(c.id);renderClients()};
+    vb.appendChild(d)});
+  if(!(c.visits||[]).length)vb.innerHTML='<div class="note">Դեռ այց չկա</div>';
+  q('.c_addi').onclick=()=>instForm(c,null);q('.c_addv').onclick=()=>visitForm(c,null);
+  const dl=q('.c_del');dl.onclick=async()=>{if(!dl.dataset.c){dl.dataset.c=1;dl.textContent='Համոզվա՞ծ եք․ սեղմեք նորից';return}await delClient(c.id);card.style.display='none';renderClients();toast('Ջնջվեց')};
+  card.scrollIntoView({behavior:'smooth'});
+}
+function cartSummary(){const L=quoteLines().filter(l=>l.kind==='prod');return {items:L.map(l=>`${l.n} × ${l.q}${l.d?' ('+l.d+')':''}`).join('\n'),cams:camsInLines(L).n}}
+function instForm(c,it){
+  const f=$('cliCard').querySelector('.c_form');const isNew=!it;it=it||{id:uid(),date:today(),cams:0,items:'',work:'',free:6,price:0};
+  f.innerHTML=`<div class="pform cform" style="margin-top:10px"><b>${isNew?'＋ Նոր տեղադրում':'✎ Տեղադրում'}</b>
+   <div class="grid2"><label>Ամսաթիվ<input type="date" class="i_d"></label><label>Տեսախցիկների քանակ<input type="number" inputmode="numeric" class="i_c"></label></div>
+   <label>Սարքեր (ամեն մեկը նոր տողում)<textarea class="i_i" rows="4" placeholder="DS-2CD1043G2-LIU × 4&#10;DS-7604NI-Q1/4P × 1&#10;WD20PURZ 2TB"></textarea></label>
+   <button type="button" class="pjadd i_fromq">⬇ Լրացնել ընթացիկ գնահաշվարկից</button>
+   <label>Ինչ աշխատանք է արվել<textarea class="i_w" rows="2" placeholder="մալուխ 80 մ, NVR կարգաբերում, հավելված հեռախոսում…"></textarea></label>
+   <div class="grid2"><label>Անվճար սպասարկում (ամիս)<input type="number" inputmode="numeric" class="i_f"></label><label>Գումար ֏<input type="number" inputmode="numeric" class="i_p"></label></div>
+   <button type="button" class="btn i_save">Պահպանել</button></div>`;
+  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';q('.i_i').value=it.items||'';q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';
+  q('.i_fromq').onclick=()=>{const cs=cartSummary();if(!cs.items){toast('Գնահաշվարկը դատարկ է');return}q('.i_i').value=cs.items;q('.i_c').value=cs.cams;q('.i_p').value=Math.round(calcQuote().tot)};
+  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;it.items=q('.i_i').value.trim();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;
+    c.inst=c.inst||[];if(isNew)c.inst.push(it);await saveClient(c);openClient(c.id);renderClients();toast('Պահպանվեց ✓')};
+  f.scrollIntoView({behavior:'smooth'});
+}
+function visitForm(c,v){
+  const f=$('cliCard').querySelector('.c_form');const isNew=!v;const s=cliStatus(c);v=v||{id:uid(),date:today(),work:'',paid:s.cls==='off',amount:s.cls==='off'?10000:0};
+  f.innerHTML=`<div class="pform cform" style="margin-top:10px"><b>${isNew?'＋ Այց / աշխատանք':'✎ Այց'}</b>
+   <label>Ամսաթիվ<input type="date" class="v_d"></label>
+   <label>Ինչ է արվել<textarea class="v_w" rows="3" placeholder="մաքրեցի տեսախցիկները, փոխեցի սնուցման բլոկը…"></textarea></label>
+   <div class="grid2"><label>Վճարում<select class="v_t"><option value="0">Անվճար (ակցիա)</option><option value="1">Վճարովի</option></select></label><label>Գումար ֏<input type="number" inputmode="numeric" class="v_a"></label></div>
+   <div class="note">${s.cls==='off'?'Անվճար սպասարկման ժամկետն ավարտվել է՝ այցը վճարովի է (10 000 ֏ + աշխատանք)։':'Հաճախորդը դեռ անվճար սպասարկման մեջ է։'}</div>
+   <button type="button" class="btn v_save">Պահպանել</button></div>`;
+  const q=x=>f.querySelector(x);q('.v_d').value=v.date;q('.v_w').value=v.work||'';q('.v_t').value=v.paid?'1':'0';q('.v_a').value=v.amount||'';
+  q('.v_save').onclick=async()=>{v.date=q('.v_d').value||today();v.work=q('.v_w').value.trim();v.paid=q('.v_t').value==='1';v.amount=v.paid?(+q('.v_a').value||0):0;
+    c.visits=c.visits||[];if(isNew)c.visits.push(v);await saveClient(c);openClient(c.id);renderClients();toast('Պահպանվեց ✓')};
+  f.scrollIntoView({behavior:'smooth'});
+}
+$('cliSearch').oninput=renderClients;
+$('cliAdd').onclick=()=>openClient(null);
+$('toClient').onclick=async()=>{
+  const cs=cartSummary();if(!cs.items&&!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
+  const nm=$('client').value.trim();if(!nm){toast('Գրեք հաճախորդի անունը գնահաշվարկում');$('client').focus();return}
+  let c=clients.find(x=>norm(x.name)===norm(nm));if(!c)c={id:uid(),name:nm,phone:'',addr:'',note:'',inst:[],visits:[],created:new Date().toISOString()};
+  c.inst=c.inst||[];c.inst.push({id:uid(),date:today(),cams:cs.cams,items:cs.items,work:quoteLines().filter(l=>l.kind==='work').map(l=>`${l.n} × ${l.q}${l.u?' '+l.u:''}`).join(', '),free:promoActive()?6:0,price:Math.round(calcQuote().tot)});
+  await saveClient(c);location.hash='cli';show('cli');openClient(c.id);toast(`«${c.name}»՝ տեղադրումը ավելացվեց ✓`);
+};
+
 /* ---------- Cloud (Supabase) + quote history ---------- */
 const CLOUD={sb:null,user:null,offline:false};
 const cloudOn=()=>!!(CLOUD.sb&&CLOUD.user&&!CLOUD.offline);
@@ -1796,6 +1939,7 @@ async function pullAll(){
     const local=LS.get('quotes',[]);
     if(local.length){const {count}=await sb.from('quotes').select('id',{count:'exact',head:true});
       if(!count){const {error}=await sb.from('quotes').insert(local.map(q=>({client:q.client,total:q.total,data:q.data,created_at:q.created_at,updated_at:q.updated_at})));if(!error)LS.set('quotes',[])}}
+    await pullClients();
     cst('ok','Ամպ');
   }catch(e){cloudErr(e,'pull')}
   renderHistory();
@@ -1896,13 +2040,15 @@ function drawHistory(){
 $('hSearch').oninput=drawHistory;
 
 /* ---------- Tabs ---------- */
-const views=['quote','prod','hist','tools','set','hdd','poe'];
+const views=['quote','prod','cli','hist','tools','set','hdd','poe'];
 function show(v){
   if(!views.includes(v))v='quote';
   $('backBtn').style.display=v==='quote'?'none':'block';
   if(v==='hdd'||v==='poe')v='tools';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v||(v==='tools'&&e.classList.contains('tools-view'))));
   if(v==='prod'){renderProd();renderProj();renderShops()}
+  if(v==='cli')renderClients();
+  document.querySelectorAll('nav button').forEach(b=>{if(v==='tools'&&b.dataset.v==='set')b.classList.add('on')});
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   window.scrollTo(0,0);
 }
