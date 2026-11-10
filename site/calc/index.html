@@ -32,7 +32,7 @@
 .prod{border-bottom:1px solid #16295299}
 .prod .ph{display:flex;gap:8px;padding:9px 2px;cursor:pointer;align-items:flex-start}
 .prod .n{flex:1;min-width:0}.prod .n .mdl{display:block;font-size:14.5px;word-break:break-word}
-.prod .n .dsc{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;color:#b9c6e4;font-size:12px}
+.prod .n .dsc{display:none;color:#b9c6e4;font-size:12px}
 .prod .n small.spc{display:block;color:var(--acc2);font-size:11.5px}
 .prod .pp{text-align:right;white-space:nowrap;font-size:14px}.prod .pp small{display:block;color:var(--mut);font-size:11px;font-weight:400}
 .prod .st{font-size:12px;margin-right:4px}.prod .st.ok{color:var(--ok)}.prod .st.no{color:var(--bad)}
@@ -49,8 +49,9 @@ body.pfon .prow{display:flex}
 .mkl{display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--mut)}
 .mkl .mkin{width:62px;padding:5px;font-size:14px;text-align:center}
 .res .n .mdl{display:block;font-size:15px;font-weight:700;color:var(--txt);word-break:break-word}
-.res .n .dsc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b9c6e4;font-size:12.5px;margin-top:2px}
+.res .n .dsc{display:none;color:#b9c6e4;font-size:12.5px;margin-top:2px}
 .res .n.open .dsc{display:block}
+.prod .ph.open .dsc{display:block}
 .res .n small.spc{color:var(--acc2);font-size:12px;margin-top:3px}
 .cst{margin-left:auto;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px;white-space:nowrap}
 .cst:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mut)}
@@ -597,7 +598,7 @@ function renderCart(){
     const sb=r.querySelector('.stb');
     const paint=()=>{const m={ok:['✓','ok','Առկա է'],no:['✗','no','Առկա չէ'],'':['?','','Չի ստուգված']}[c.st||''];sb.textContent=m[0];sb.className='stb '+m[1];sb.title=m[2];r.classList.toggle('missing',c.st==='no')};paint();
     sb.onclick=()=>{c.st=c.st===''||!c.st?'ok':c.st==='ok'?'no':'';LS.set('cart',cart);paint();stockNote()};
-    r.querySelector('.n').textContent=c.n;
+    r.querySelector('.n').textContent=shortName(c);r.querySelector('.n').title=c.n;
     if(c.s&&lists.length>1){const t=document.createElement('span');t.className='tag';t.textContent=c.s;r.querySelector('.n').prepend(t)}
     if(c.src){const t=document.createElement('span');t.className='tag';t.style.background='#3ddc9733';t.style.color='var(--ok)';t.textContent='🏪 '+c.src;r.querySelector('.n').prepend(t)}
     if(c.d===undefined)c.d=specOf(c.n+' '+(c.k||''));
@@ -978,9 +979,12 @@ $('promoText').oninput=()=>{LS.set('promoText',$('promoText').value);promoUI();p
 $('promoOn').onchange=()=>{LS.set('promoOn',$('promoOn').checked);calcQuote()};
 const promoActive=()=>$('promoOn').checked&&!!promoText();
 
+function shortName(c){return String(c.n).split(' — ')[0].trim()}
+function shortDesc(c){const p=String(c.n).split(' — ');if(p.length<2)return '';const d=p.slice(1).join(' ').trim();return d.length>45?d.slice(0,42).replace(/[ ,.;:]+\S*$/,'')+'…':d}
+
 function quoteLines(){
   const L=[];
-  cart.forEach(c=>{if(c.q>0)L.push({n:c.n,d:c.d||'',q:c.q,u:'հատ',p:c.p,cost:c.cost==null?null:c.cost,kind:'prod'})});
+  cart.forEach(c=>{if(c.q>0)L.push({n:shortName(c),d:c.d||shortDesc(c),q:c.q,u:'հատ',p:c.p,cost:c.cost==null?null:c.cost,kind:'prod'})});
   DEFAULT_ITEMS.forEach(it=>{const q=qty[it.id]||0;if(q>0)L.push({n:it.name,q,u:it.unit,p:priceOf(it),cost:0,kind:'work'})});
   customs.forEach(c=>{if(c.q>0&&c.name)L.push({n:c.name,q:c.q,u:'',p:c.p,cost:0,kind:'work'})});
   return L;
