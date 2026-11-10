@@ -17,6 +17,8 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
+.diff{font-size:11px;color:var(--ok);font-weight:600;line-height:1.3}
+.prod .pp .df{display:block;color:var(--ok);font-size:11px;font-weight:600}
 .prod{border-bottom:1px solid #16295299}
 .prod .ph{display:flex;gap:8px;padding:9px 2px;cursor:pointer;align-items:flex-start}
 .prod .n{flex:1;min-width:0}.prod .n .mdl{display:block;font-size:14.5px;word-break:break-word}
@@ -202,10 +204,11 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
         <div class="f xl"><label>Թերթ (sheet)</label><select id="m_sheet"></select></div>
         <div class="f xl"><label>Վերնագրի տող</label><select id="m_head"></select></div>
         <div class="f"><label>Անուն / մոդել</label><select id="m_name"></select></div>
-        <div class="f"><label>Գին</label><select id="m_price"></select></div>
+        <div class="f"><label>Վաճառքի գին</label><select id="m_price"></select></div>
         <div class="f"><label>Կոդ (ըստ ցանկ.)</label><select id="m_code"></select></div>
         <div class="f"><label>Կատեգորիա (ըստ ցանկ.)</label><select id="m_cat"></select></div>
         <div class="f"><label>Առկայություն (ըստ ցանկ.)</label><select id="m_stk"></select></div>
+        <div class="f"><label>Իմ գինը / դիլերային (ըստ ցանկ.)</label><select id="m_cost"></select></div>
       </div>
       <div class="f" style="margin-top:10px"><label style="font-size:13px;color:var(--mut);display:block;margin-bottom:4px">Մատակարար / բրենդ</label><input type="text" id="m_sup" placeholder="օր․ Hikvision, Dahua"></div>
       <div class="note" id="supWarn" style="color:var(--warn)"></div>
@@ -442,7 +445,7 @@ function catUI(){
     r.innerHTML='<div class="n"><b></b><small></small></div><label class="mkl">հավել. %<input type="number" inputmode="decimal" class="mkin"></label><button class="del" type="button" title="Ջնջել">×</button>';
     const mi=r.querySelector('.mkin');mi.value=l.mk!=null?l.mk:'';mi.placeholder='—';
     const hasCost=l.items.some(it=>it.cost!=null);if(!hasCost){mi.disabled=true;mi.title='Ներմուծեք նորից՝ ինքնարժեքը պահելու համար'}
-    let _mkT=0;mi.oninput=()=>{clearTimeout(_mkT);_mkT=setTimeout(()=>{const mk=+mi.value||0;l.mk=mk;l.items.forEach(it=>{if(it.cost!=null)it.p=saleOf(it.cost,mk)});
+    let _mkT=0;mi.oninput=()=>{clearTimeout(_mkT);_mkT=setTimeout(()=>{const mk=+mi.value||0;l.mk=mk;l.items.forEach(it=>{const base=it.r!=null?it.r:it.cost;if(base!=null)it.p=saleOf(base,mk)});
       LS.set('lists',lists);rebuildCatalog();renderResults();pushList(l);toast(`${l.name}՝ վաճառքի գները թարմացվեցին (+${mk}%)`)},600)};
     const nb=r.querySelector('b');nb.textContent=l.name+' ✎';nb.style.cursor='pointer';nb.title='Փոխել անունը';
     nb.onclick=()=>{const inp=document.createElement('input');inp.type='text';inp.value=l.name;inp.style.padding='5px 7px';inp.style.fontSize='14px';nb.replaceWith(inp);inp.focus();inp.select();
@@ -532,7 +535,7 @@ function renderResults(){
   if(hits.fuzzy){const n=document.createElement('div');n.className='note';n.style.marginTop='0';n.textContent='Ճշգրիտ համընկնում չկա, մոտ արդյունքներ․';box.appendChild(n)}
   hits.forEach(it=>{
     const r=document.createElement('div');r.className='res';
-    r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
+    r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
     {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
       if(parts.length>1){const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);nd.onclick=()=>nd.classList.toggle('open')}}
     if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
@@ -570,7 +573,7 @@ function renderCart(){
     pin.oninput=()=>{c.p=+pin.value||0;upd();LS.set('cart',cart);calcQuote()};
     const ctl=document.createElement('div');ctl.className='ctl';ctl.appendChild(sm);ctl.appendChild(pin);ctl.appendChild(st);r.appendChild(ctl);
     const pr=document.createElement('div');pr.className='prow';
-    pr.innerHTML='<span>Ինքնարժեք</span><input type="number" inputmode="numeric" class="cin" placeholder="?"><span class="mg"></span>';
+    pr.innerHTML='<span>Իմ գինը</span><input type="number" inputmode="numeric" class="cin" placeholder="?"><span class="mg"></span>';
     const cin=pr.querySelector('.cin'),mg=pr.querySelector('.mg');if(c.cost!=null)cin.value=c.cost;
     const pupd=()=>{if(c.cost==null||c.cost===''){mg.textContent='';return}const pf=(c.p-c.cost)*c.q;mg.textContent=`շահ․ ${fmt(pf)}`;mg.style.color=pf<0?'var(--bad)':'var(--ok)'};pupd();
     cin.oninput=()=>{c.cost=cin.value===''?null:+cin.value;LS.set('cart',cart);pupd();calcQuote()};
@@ -756,16 +759,17 @@ function detectMap(rs){
     for(let i=0;i<n;i++){if(i===pi)continue;const l=body.reduce((a,r)=>a+(typeof r[i]==='string'?r[i].length:0),0);if(l>bl){bl=l;best=i}}ni=best;
   }
   if(di===ni)di=-1;
-  return {hi,ni,di,pi,ki:find(/կոդ|code|арт|sku|^art/i),si:find(/առկա|մնացորդ|налич|остат|stock|availab|склад/i)};
+  let qi=-1;for(let i=0;i<h.length;i++){if(i!==pi&&/դիլեր|մեծածախ|ինքնարժ|дилер|опт|закуп|партн|dealer|wholesale|partner|cost|purchase|net price|вход/i.test(h[i])&&body.filter(r=>parsePrice(r[i])>0).length>body.length/3){qi=i;break}}
+  return {hi,ni,di,pi,qi,ki:find(/կոդ|code|арт|sku|^art/i),si:find(/առկա|մնացորդ|налич|остат|stock|availab|склад/i)};
 }
 function allSheetsRows(){
-  const out=[['Անվանում','Գին','Կոդ','Թերթ','Առկայություն']];
+  const out=[['Անվանում','Վաճառքի գին','Կոդ','Թերթ','Առկայություն','Իմ գինը (դիլերային)']];
   wb.SheetNames.forEach(sn=>{
     const rs=sheetRows(sn);if(rs.length<2)return;
     const m=detectMap(rs);if(m.ni<0||m.pi<0)return;
     rs.slice(m.hi+1).forEach(r=>{
       const n=[r[m.ni],m.di>=0?r[m.di]:''].map(x=>String(x??'').trim()).filter(Boolean).join(' — ');
-      if(n&&parsePrice(r[m.pi])>0)out.push([n,r[m.pi],m.ki>=0?String(r[m.ki]??''):'',sn,m.si>=0?r[m.si]:'']);
+      if(n&&parsePrice(r[m.pi])>0)out.push([n,r[m.pi],m.ki>=0?String(r[m.ki]??''):'',sn,m.si>=0?r[m.si]:'',m.qi>=0?r[m.qi]:'']);
     });
   });
   return out;
@@ -774,7 +778,7 @@ function loadSheet(){
   if(+$('m_sheet').value===-1){
     rows=allSheetsRows();
     $('m_head').innerHTML='<option value="0">Ավտոմատ</option>';$('m_head').value=0;
-    loadCols();$('m_name').value=0;$('m_price').value=1;$('m_code').value=2;$('m_cat').value=3;$('m_stk').value=rows.slice(1).some(r=>stockVal(r[4]))?4:-1;preview();
+    loadCols();$('m_name').value=0;$('m_price').value=1;$('m_code').value=2;$('m_cat').value=3;$('m_stk').value=rows.slice(1).some(r=>stockVal(r[4]))?4:-1;$('m_cost').value=rows.slice(1).some(r=>parsePrice(r[5])>0)?5:-1;preview();
     return;
   }
   rows=sheetRows(wb.SheetNames[+$('m_sheet').value]);
@@ -794,7 +798,7 @@ function loadCols(){
   const find=re=>{const i=labels.findIndex(l=>re.test(l));return i};
   const none='<option value="-1">— չկա —</option>';
   const o=labels.map((l,i)=>`<option value="${i}">${isPdf?'':col(i)+': '}${l}</option>`).join('');
-  $('m_name').innerHTML=o;$('m_price').innerHTML=o;$('m_code').innerHTML=none+o;$('m_cat').innerHTML=none+o;$('m_stk').innerHTML=none+o;
+  $('m_name').innerHTML=o;$('m_price').innerHTML=o;$('m_code').innerHTML=none+o;$('m_cat').innerHTML=none+o;$('m_stk').innerHTML=none+o;$('m_cost').innerHTML=none+o;
   let ni=find(/մոդել|model|модел|անուն|անվան|ապրանք|name|наимен|товар|описан|նկարագր/i);
   let pi=-1; for(let i=labels.length-1;i>=0;i--){if(/գին|price|цена|արժ/i.test(labels[i])&&!/մեծ|опт|wholesale|ինքն|закуп|cost/i.test(labels[i])){pi=i;break}}
   if(pi<0)pi=find(/գին|price|цена|արժ/i);
@@ -804,9 +808,10 @@ function loadCols(){
   }
   $('m_name').value=Math.max(0,ni);$('m_price').value=Math.max(0,pi);
   $('m_code').value=find(/կոդ|code|арт|sku|art/i);$('m_cat').value=find(/կատեգ|categ|խումբ|групп|տեսակ|type/i);$('m_stk').value=find(/առկա|մնացորդ|налич|остат|stock|availab|склад/i);
+  {let qi=-1;for(let i=0;i<labels.length;i++){if(i!==+$('m_price').value&&/դիլեր|մեծածախ|ինքնարժ|дилер|опт|закуп|партн|dealer|wholesale|partner|cost|purchase|net price|вход/i.test(labels[i])){qi=i;break}}$('m_cost').value=qi;}
   preview();
 }
-['m_name','m_code','m_cat','m_stk'].forEach(id=>$(id).onchange=preview);
+['m_name','m_code','m_cat','m_stk','m_cost'].forEach(id=>$(id).onchange=preview);
 $('m_sup').addEventListener('input',()=>{$('m_merge').dataset.touched='';preview()});$('m_merge').onchange=()=>{$('m_merge').dataset.touched=1;preview()};
 $('m_price').onchange=guessRate;
 ['m_mk'].forEach(id=>{$(id).value=LS.get(id,$(id).value);$(id).oninput=()=>{LS.set(id,$(id).value);preview();pushSettingsSoon()}});
@@ -822,11 +827,11 @@ function costOf(raw){const rate=+$('m_rate').value||1;const c=raw*rate;return ra
 function saleOf(cost,mk){mk=+mk||0;return mk?Math.round(cost*(1+mk/100)/10)*10:cost}
 function adj(raw){return saleOf(costOf(raw),$('m_mk').value)}
 function buildCat(){
-  const hi=+$('m_head').value, ni=+$('m_name').value, pi=+$('m_price').value, ki=+$('m_code').value, ci=+$('m_cat').value, si=+$('m_stk').value;
+  const hi=+$('m_head').value, ni=+$('m_name').value, pi=+$('m_price').value, ki=+$('m_code').value, ci=+$('m_cat').value, si=+$('m_stk').value, qi=+$('m_cost').value;
   const out=[];
   rows.slice(hi+1).forEach(r=>{
     const n=String(r[ni]??'').trim(), raw=parsePrice(r[pi]);
-    if(n&&isFinite(raw)&&raw>0){const cost=costOf(raw),p=saleOf(cost,$('m_mk').value);const o={n,p,cost,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
+    if(n&&isFinite(raw)&&raw>0){const rq=qi>=0?parsePrice(r[qi]):NaN;const hasQ=isFinite(rq)&&rq>0;const base=costOf(raw);const cost=hasQ?costOf(rq):base,p=saleOf(base,$('m_mk').value);const o={n,p,cost,r:hasQ?base:undefined,k:ki>=0?String(r[ki]??'').trim():'',c:ci>=0?String(r[ci]??'').trim():''};if(si>=0){const st=stockVal(r[si]);if(st)o.stk=st}out.push(o)}
   });
   return out;
 }
@@ -838,8 +843,9 @@ function preview(){
   const c=buildCat();mergeUI(c.length);
   const cats={};c.forEach(x=>{if(x.c)cats[x.c]=(cats[x.c]||0)+1});
   const sOk=c.filter(x=>x.stk==='ok').length,sNo=c.filter(x=>x.stk==='no').length;
+  const withR=c.filter(x=>x.r!=null).length;
   const cl=Object.keys(cats).length>1?'<br>'+Object.entries(cats).map(([k,v])=>`${k.replace(/</g,'&lt;')}՝ ${v}`).join(' · ')+'<br>':'';
-  $('m_prev').innerHTML=c.length?`Գտնվեց <b style="color:var(--txt)">${c.length}</b> ապրանք։${cl} ${sOk||sNo?`<br>Առկայություն՝ ✓ ${sOk} · ✗ ${sNo}<br>`:''} Օրինակ՝<br>`+c.slice(0,3).map(x=>`• ${x.n.replace(/</g,'&lt;').slice(0,50)} — ${fmt(x.p)}`).join('<br>'):'<span style="color:var(--bad)">Ապրանք չգտնվեց — փոխեք սյունակները</span>';
+  $('m_prev').innerHTML=c.length?`Գտնվեց <b style="color:var(--txt)">${c.length}</b> ապրանք։${cl} ${sOk||sNo?`<br>Առկայություն՝ ✓ ${sOk} · ✗ ${sNo}<br>`:''} ${withR?`<br><span style="color:var(--ok)">✓ Գտնվեց երկու գին. հաճախորդի համար՝ վաճառքի գինը, իսկ քո (դիլերային) գինը պահվում է որպես ինքնարժեք (${withR} ապրանք)։</span><br>`:`<br><span style="color:var(--warn)">Գտնվեց միայն մեկ գին. այն համարվում է քո գինը, վաճառքը = + հավելավճար %։ Եթե ֆայլում դիլերային գինն էլ կա, ընտրեք «Իմ գինը / դիլերային» սյունակը։</span><br>`} Օրինակ՝<br>`+c.slice(0,3).map(x=>`• ${x.n.replace(/</g,'&lt;').slice(0,50)} — ${fmt(x.p)}${x.cost!=null&&x.cost!==x.p?` <span style="color:var(--mut)">(իմ գինը ${fmt(x.cost)})</span>`:''}`).join('<br>'):'<span style="color:var(--bad)">Ապրանք չգտնվեց — փոխեք սյունակները</span>';
 }
 $('m_save').onclick=()=>{
   const c=buildCat();if(!c.length){toast('Ապրանք չկա');return}
@@ -849,7 +855,7 @@ $('m_save').onclick=()=>{
   if(ix>=0&&$('m_merge').checked){
     const old=lists[ix].items.slice();let added=0;
     c.forEach(it=>{const k=mkey(it.k&&it.k.length>3?it.k:it.n);const j=old.findIndex(o=>mkey(o.k&&o.k.length>3?o.k:o.n)===k);
-      if(j>=0){old[j]=Object.assign({},old[j],{p:it.p,cost:it.cost},it.stk?{stk:it.stk}:{})}else{old.push(it);added++}});
+      if(j>=0){old[j]=Object.assign({},old[j],{p:it.p,cost:it.cost,r:it.r},it.stk?{stk:it.stk}:{})}else{old.push(it);added++}});
     lists[ix]=Object.assign({},lists[ix],{items:old,date,mk:+$('m_mk').value||0});
   }else{
     const entry={name:nm,file:LS.get('catName',''),date,items:c,mk:+$('m_mk').value||0};
@@ -870,7 +876,7 @@ function profitOf(L,sub,tot){
   const profit=(ps-pc)+work-disc;
   return {ps,pc,work,disc,unk,unkSale,profit,pct:tot>0?profit/tot*100:0};
 }
-let showPf=LS.get('showPf',false);
+let showPf=LS.get('showPf',true);
 function renderProfit(pf){
   document.body.classList.toggle('pfon',showPf);
   $('pfBtn').textContent=showPf?'🙈 Թաքցնել շահույթը':'👁 Շահույթ';
@@ -1171,7 +1177,7 @@ function prodRow(it){
   const parts=String(it.n).split(' — ');
   const stk=it.stk==='ok'?'<span class="st ok">✓</span>':it.stk==='no'?'<span class="st no">✗</span>':'';
   r.innerHTML=`<div class="ph"><div class="n"><span class="tag">${esc(it.b)}</span><b class="mdl">${esc(parts[0])}</b>${parts.length>1?`<span class="dsc">${esc(parts.slice(1).join(' — '))}</span>`:''}<small class="spc">${esc(it.sp||'')}</small></div>
-    <div class="pp">${stk}<b>${fmt(it.p)}</b>${it.cost!=null?`<small>ինքն․ ${fmt(it.cost)}</small>`:''}</div></div>`;
+    <div class="pp">${stk}<b>${fmt(it.p)}</b>${it.cost!=null?`<small>իմ գինը ${fmt(it.cost)}</small>${it.p!==it.cost?`<span class="df">+${fmt(it.p-it.cost)} (${it.cost?((it.p-it.cost)/it.cost*100).toFixed(0):0}%)</span>`:''}`:''}</div></div>`;
   const key=it.s+'|'+it._i;
   r.querySelector('.ph').onclick=()=>{pOpen=pOpen===key?null:key;renderProd()};
   if(pOpen===key)r.appendChild(prodEditor(it));
@@ -1190,7 +1196,7 @@ function prodEditor(it){
   let saleTouched=false;
   const margin=()=>{const c=+q('.e_c').value,p=+q('.e_p').value;q('.e_m').textContent=c>0&&p>0?`Շահույթ մեկ հատից՝ ${fmt(p-c)} (${((p-c)/c*100).toFixed(0)}%)`:''};margin();
   q('.e_p').oninput=()=>{saleTouched=true;margin()};
-  q('.e_c').oninput=()=>{if(!saleTouched&&l.mk&&q('.e_c').value!=='')q('.e_p').value=saleOf(+q('.e_c').value,l.mk);margin()};
+  q('.e_c').oninput=()=>{if(!saleTouched&&l.mk&&src.r==null&&q('.e_c').value!=='')q('.e_p').value=saleOf(+q('.e_c').value,l.mk);margin()};
   q('.e_save').onclick=()=>{
     const n=q('.e_n').value.trim();if(!n){toast('Անվանումը դատարկ է');return}
     src.n=n;src.p=+q('.e_p').value||0;src.cost=q('.e_c').value===''?undefined:+q('.e_c').value;
