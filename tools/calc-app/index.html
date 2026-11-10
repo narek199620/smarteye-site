@@ -567,15 +567,21 @@ function variants(w){
 function searchCatalog(qRaw,filt){if(filt===undefined)filt=supFilter;
   // join "4 mp" → "4mp", "2 tb" → "2tb"
   const q=qRaw.replace(/(\d)\s+(mp|մպ|мп|tb|тб)\b/g,'$1$2');
-  const words=q.split(' ').filter(Boolean);
   const pool=catalog.filter(it=>fMatch(it,filt));
+  // "*" alone → everything (cheapest first)
+  if(/^[*\s]+$/.test(q)){const all=pool.slice().sort((a,b)=>a.p-b.p);all.fuzzy=false;return all}
+  const words=q.split(' ').filter(w=>w&&w!=='*');
   const scored=[];
   pool.forEach(it=>{
     let hit=0,score=0;
     words.forEach(w=>{
+      let ok=false;const vs=w.includes('*')?[]:variants(w);
+      if(w.includes('*')){ // wildcard: ds-2cd*liu, 2cd10*3
+        const re=new RegExp(w.replace(/[^a-z0-9а-яա-ֆ*]/g,'').split('*').map(x=>x.replace(/[.+?^${}()|[\]\\]/g,'\\$&')).join('.*'));
+        ok=re.test(it.hc);
+      }
       const wc=w.replace(/[^a-z0-9а-яա-ֆ]/g,'');
-      const vs=variants(w);
-      let ok=vs.some(v=>it.h.includes(v));
+      if(!ok&&vs.length)ok=vs.some(v=>it.h.includes(v));
       if(!ok&&wc.length>=3&&it.hc.includes(wc))ok=true;      // model without dashes: 2cd1043 → DS-2CD1043
       if(ok&&it.sp&&vs.some(v=>it.sp.toLowerCase().includes(v)))score+=8;
       if(ok){hit++;score+=10;if(it.h.startsWith(w)||(it.k&&norm(it.k).startsWith(w)))score+=5}
