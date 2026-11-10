@@ -633,13 +633,13 @@ function renderCart(){
   const sn=document.createElement('div');sn.id='stockNote';sn.className='note';box.appendChild(sn);stockNote();
 }
 /* ---------- Supplier text reply → ✓/✗ ---------- */
-const YES=/(^|[^a-zа-яա-ֆ])(կա|կան|առկա|есть|имеется|в наличии|наличие\s*:?\s*да|да|yes|ok|available|in stock|have|✓|✔|\+)(?![a-zа-яա-ֆ])/i;
-const NO=/(չկա|չկան|չունենք|չունեմ|առկա չէ|нет|отсутств|нету|закончил|под заказ|ожида|no\b|not available|out of stock|sold out|✗|✘|❌)/i;
+const YES=/(^|[^a-zа-яա-ֆ])(կա|կան|կաա|ունենք|ունեմ|այո|առկա|есть|имеется|в наличии|наличие\s*:?\s*да|да|ka|kan|kaa|kay|unenq|unem|unen|ayo|aha|est|yest|jest|v nalichii|nalichii|yes|ok|okay|available|in stock|have|✓|✔|👍|\+)(?![a-zа-яա-ֆ])/i;
+const NO=/(չկա|չկան|չունենք|չունեմ|չի մնացել|վերջացել|առկա չէ|(?:^|\s)ոչ(?=\s|$|[,.!])|нет|отсутств|нету|закончил|под заказ|ожида|\bchka\b|\bchkan\b|\bchka[a-z]*|\bchunenq\b|\bchunem\b|\bchunen\b|\bvoch\b|\bvoc\b|\bche\b|\bchi mnacel|verjacel|\bnet\b|\bnetu\b|pod ?zakaz|zakonchil|\bno\b|not available|out of stock|sold out|✗|✘|❌|👎)/i;
 function lineStatus(t){
   const s=t.toLowerCase();
   if(NO.test(s))return 'no';
   if(YES.test(s))return 'ok';
-  const m=s.match(/(\d+)\s*(հատ|шт|pcs|pc)/);if(m)return +m[1]>0?'ok':'no';
+  const m=s.match(/(\d+)\s*(հատ|шт|pcs|pc|hat|ht|sht)\b/);if(m)return +m[1]>0?'ok':'no';
   if(/[-–—]\s*$/.test(s.trim()))return 'no';
   return '';
 }
