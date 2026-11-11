@@ -144,6 +144,12 @@ main{padding:8px 12px;max-width:560px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .card h2{font-size:15px;margin:0 0 10px;color:var(--acc2);font-weight:600}
 .row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--sep)}
+.wtools{display:flex;gap:8px;margin-bottom:6px}.wtools input{flex:1;min-width:0}
+.wg{border:1px solid var(--line);border-radius:12px;margin-top:8px;background:var(--field);overflow:hidden}
+.wgh{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:11px 12px;font-family:inherit;font-size:15px;font-weight:700;color:var(--txt);text-align:left;cursor:pointer}
+.wgh .wgt{flex:1}.wgh .wgs{font-size:12px;font-weight:700;color:#fff;background:var(--ok);border-radius:10px;padding:2px 8px;white-space:nowrap}.wgh .wga{color:var(--mut);font-size:14px}
+.wgb{display:none;padding:0 12px 6px}.wg.open .wgb{display:block}
+.wgb .row:last-child{border-bottom:none}.wgb .row.on label{font-weight:700}
 .row:last-child{border-bottom:none}
 .row label{flex:1;font-size:14px;line-height:1.25}
 .row label small{display:block;color:var(--mut);font-size:11.5px}
@@ -229,6 +235,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var
   </div>
   <div class="card">
     <h2>Աշխատանքներ (ծառայություններ)</h2>
+    <div class="wtools"><input type="search" id="wSearch" placeholder="🔍 Որոնել…"><button type="button" id="wAuto" class="btn ghost" style="margin:0;width:auto;padding:9px 12px;font-size:13.5px;white-space:nowrap">⚡ Ըստ ապրանքների</button></div>
     <div id="items"></div>
   </div>
   <div class="card custom">
@@ -474,17 +481,42 @@ const $ = id => document.getElementById(id);
 const toast = t => {const e=$('toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1600)};
 
 /* ---------- Items & prices ---------- */
+const WORK_GROUPS = [
+  {g:'cctv', t:'📹 Տեսախցիկներ'},
+  {g:'cable',t:'🔌 Մալուխ և մոնտաժ'},
+  {g:'alarm',t:'🚨 Ալարմ և հրդեհային'},
+  {g:'net',  t:'🌐 Ցանց / Wi-Fi'},
+  {g:'shop', t:'🏪 Խանութի ավտոմատացում'},
+  {g:'pc',   t:'💻 Համակարգիչներ'},
+  {g:'other',t:'🚗 Ճանապարհ և կանչ'},
+];
 const DEFAULT_ITEMS = [
-  {id:'cam',  name:'Տեսախցիկի մոնտաժ',             unit:'հատ', price:10000},
-  {id:'cam_h',name:'Մոնտաժ բարձրության վրա / դժվար', unit:'հատ', price:15000},
-  {id:'nvr',  name:'NVR/DVR տեղադրում և կարգաբերում', unit:'հատ', price:15000},
-  {id:'cab',  name:'Մալուխի անցկացում',               unit:'մ',   price:300},
-  {id:'duct', name:'Կաբել-կանալ / գոֆրե',             unit:'մ',   price:400},
-  {id:'drill',name:'Պատի ծակում',                     unit:'հատ', price:2000},
-  {id:'app',  name:'Հեռախոսի հավելվածի միացում',      unit:'հատ', price:5000},
-  {id:'mon',  name:'Մոնիտորի տեղադրում',             unit:'հատ', price:5000},
-  {id:'fluke',name:'Ցանցի սերտիֆիկացում (Fluke)',     unit:'գիծ', price:3000},
-  {id:'road', name:'Ճանապարհ (Երևանից դուրս)',        unit:'կմ',  price:150},
+  {g:'cctv', id:'cam',  name:'Տեսախցիկի մոնտաժ',             unit:'հատ', price:10000},
+  {g:'cctv', id:'cam_h',name:'Մոնտաժ բարձրության վրա / դժվար', unit:'հատ', price:15000},
+  {g:'cctv', id:'nvr',  name:'NVR/DVR տեղադրում և կարգաբերում', unit:'հատ', price:15000},
+  {g:'cctv', id:'hdd',  name:'Կոշտ սկավառակի (HDD) տեղադրում / փոխարինում', unit:'հատ', price:3000},
+  {g:'cctv', id:'app',  name:'Հեռախոսի հավելվածի միացում',      unit:'հատ', price:5000},
+  {g:'cctv', id:'ai',   name:'Խելացի ֆունկցիաներ (գոտիներ, ծանուցումներ)', unit:'համակարգ', price:5000},
+  {g:'cctv', id:'mon',  name:'Մոնիտորի տեղադրում',             unit:'հատ', price:5000},
+  {g:'cctv', id:'ezviz',name:'Դռան խելացի աչքի (EZVIZ) տեղադրում', unit:'հատ', price:10000},
+  {g:'cable',id:'cab',  name:'Մալուխի անցկացում',               unit:'մ',   price:300},
+  {g:'cable',id:'duct', name:'Կաբել-կանալ / գոֆրե',             unit:'մ',   price:400},
+  {g:'cable',id:'drill',name:'Պատի ծակում',                     unit:'հատ', price:2000},
+  {g:'cable',id:'box',  name:'Միացման / հերմետիկ տուփի տեղադրում', unit:'հատ', price:2000},
+  {g:'alarm',id:'al_hub',name:'Ալարմի կենտրոնական բլոկ՝ տեղադրում և կարգաբերում', unit:'հատ', price:15000},
+  {g:'alarm',id:'al_sen',name:'Սենսոր (շարժման / դռան / պատուհանի)', unit:'հատ', price:3000},
+  {g:'alarm',id:'al_fire',name:'Ծխի / հրդեհի դետեկտոր',        unit:'հատ', price:3000},
+  {g:'alarm',id:'al_sir',name:'Սիրենա / ստեղնաշար / պուլտ',      unit:'հատ', price:3000},
+  {g:'alarm',id:'al_app',name:'Ալարմի միացում հավելվածին',      unit:'հատ', price:5000},
+  {g:'net',  id:'net_pt',name:'Ցանցային կետ (RJ45 վարդակ / կոնեկտոր)', unit:'հատ', price:2000},
+  {g:'net',  id:'net_sw',name:'Ռաութեր / Switch՝ տեղադրում և կարգաբերում', unit:'հատ', price:8000},
+  {g:'net',  id:'wifi', name:'Wi-Fi կետի (Access Point) տեղադրում', unit:'հատ', price:8000},
+  {g:'net',  id:'fluke',name:'Ցանցի սերտիֆիկացում (Fluke)',     unit:'գիծ', price:3000},
+  {g:'shop', id:'pos',  name:'Դրամարկղային համակարգիչ՝ տեղադրում և կարգաբերում', unit:'հատ', price:15000},
+  {g:'shop', id:'pos_d',name:'Սարքի միացում (սկաներ, տպիչ, կշեռք, ՀԴՄ)', unit:'հատ', price:5000},
+  {g:'pc',   id:'pc',   name:'Համակարգչի սպասարկում / Windows', unit:'հատ', price:10000},
+  {g:'other',id:'road', name:'Ճանապարհ (Երևանից դուրս)',        unit:'կմ',  price:150},
+  {g:'other',id:'visit',name:'Կանչ / ախտորոշում',               unit:'այց', price:10000},
 ];
 let prices = LS.get('prices', {});
 let qty = LS.get('qty', {});
@@ -501,14 +533,41 @@ function stepper(val, onChange){
   return w;
 }
 
+let wgOpen=LS.get('wgOpen',{cctv:true,cable:true});
 function renderItems(){
   const box=$('items');box.innerHTML='';
-  DEFAULT_ITEMS.forEach(it=>{
-    const r=document.createElement('div');r.className='row';
-    r.innerHTML=`<label>${it.name}<small>${fmt(priceOf(it))} / ${it.unit}</small></label>`;
-    r.appendChild(stepper(qty[it.id],v=>{qty[it.id]=v;LS.set('qty',qty);calcQuote()}));
-    box.appendChild(r);
+  const q=norm(($('wSearch')||{}).value||'');
+  WORK_GROUPS.forEach(G=>{
+    const its=DEFAULT_ITEMS.filter(it=>it.g===G.g&&(!q||norm(it.name).includes(q)));if(!its.length)return;
+    const sec=document.createElement('div');sec.className='wg'+((wgOpen[G.g]||q)?' open':'');
+    const hd=document.createElement('button');hd.type='button';hd.className='wgh';
+    const body=document.createElement('div');body.className='wgb';
+    const head=()=>{const sel=its.filter(it=>(qty[it.id]||0)>0);const sum=sel.reduce((a,it)=>a+qty[it.id]*priceOf(it),0);
+      hd.innerHTML=`<span class="wgt">${G.t}</span>${sel.length?`<span class="wgs">${sel.length} · ${fmt(sum)}</span>`:''}<span class="wga">${sec.classList.contains('open')?'▾':'▸'}</span>`};
+    hd.onclick=()=>{sec.classList.toggle('open');wgOpen[G.g]=sec.classList.contains('open');LS.set('wgOpen',wgOpen);head()};
+    its.forEach(it=>{
+      const r=document.createElement('div');r.className='row'+((qty[it.id]||0)>0?' on':'');
+      r.innerHTML=`<label>${it.name}<small>${fmt(priceOf(it))} / ${it.unit}</small></label>`;
+      r.appendChild(stepper(qty[it.id],v=>{qty[it.id]=v;LS.set('qty',qty);r.classList.toggle('on',v>0);head();calcQuote()}));
+      body.appendChild(r);
+    });
+    head();sec.appendChild(hd);sec.appendChild(body);box.appendChild(sec);
   });
+  if(!box.children.length)box.innerHTML='<div class="note">Չի գտնվել։ Ավելացրեք «Լրացուցիչ (ձեռքով)» բաժնում։</div>';
+}
+function autoWorks(){ // fill installation works from the products in the quote
+  const L=quoteLines().filter(l=>l.kind==='prod');if(!L.length){toast('Նախ ավելացրեք ապրանքներ');return}
+  const has=re=>L.filter(l=>re.test((l.d||'')+' '+l.n)).reduce((a,l)=>a+l.q,0);
+  const cams=camsInLines(L).n, rec=has(/nvr|dvr|xvr|ձայնագր|\bni-|\bhi-|-7[0-9]{3}/i), hdd=has(/hdd|սկավառակ|purz|purx|skyhawk|\b\d+\s?tb\b/i),
+    alHub=has(/ax\s?pro|ax\s?hybrid|hub|panel|կենտրոնական/i), alSen=has(/pir|detector|սենսոր|magnet|contact|դետեկտոր/i),
+    ap=has(/access point|\bap\b|eap|unifi/i), sw=has(/switch|սվիչ|router|ռաութեր/i);
+  const set=(id,v)=>{if(v>0)qty[id]=v};
+  set('cam',cams);set('nvr',rec);set('hdd',hdd);set('al_hub',alHub);set('al_sen',alSen);set('wifi',ap);set('net_sw',sw);
+  if(cams||alHub)set('app',1);
+  LS.set('qty',qty);
+  WORK_GROUPS.forEach(G=>{if(DEFAULT_ITEMS.some(it=>it.g===G.g&&qty[it.id]>0))wgOpen[G.g]=true});LS.set('wgOpen',wgOpen);
+  renderItems();calcQuote();
+  toast(cams||rec||alHub||ap||sw?'Լրացվեց ըստ ապրանքների ✓ — ստուգեք մալուխի մետրերը':'Ապրանքներից աշխատանք չգտնվեց');
 }
 function renderCustoms(){
   const box=$('customs');box.innerHTML='';
@@ -525,6 +584,7 @@ function renderCustoms(){
     box.appendChild(r);
   });
 }
+$('wSearch').oninput=renderItems;$('wAuto').onclick=autoWorks;
 $('addCustom').onclick=()=>{customs.push({name:'',q:1,p:0});LS.set('customs',customs);renderCustoms()};
 
 /* ---------- Catalog (Excel) ---------- */
@@ -1261,7 +1321,9 @@ $('resetQ').onclick=()=>{$('askPanel').style.display='none';qty={};customs=[];ca
 /* ---------- Prices tab ---------- */
 function renderPrices(){
   const box=$('prices');box.innerHTML='';
+  let lastG='';
   DEFAULT_ITEMS.forEach(it=>{
+    if(it.g!==lastG){lastG=it.g;const h=document.createElement('div');h.className='sub';h.style.cssText='margin:12px 0 2px;font-weight:700;color:var(--txt)';h.textContent=(WORK_GROUPS.find(G=>G.g===it.g)||{}).t||'';box.appendChild(h)}
     const r=document.createElement('div');r.className='row';
     r.innerHTML=`<label>${it.name}<small>/ ${it.unit}</small></label><input class="p" type="number" inputmode="numeric" value="${priceOf(it)}">`;
     r.querySelector('input').oninput=e=>{prices[it.id]=+e.target.value||0;LS.set('prices',prices);renderItems();calcQuote();pushSettingsSoon()};
