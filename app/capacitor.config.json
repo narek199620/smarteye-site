@@ -3,5 +3,5 @@
   "appName": "Price Manager",
   "webDir": "www",
   "server": { "androidScheme": "https" },
-  "android": { "backgroundColor": "#07122b" }
+  "android": { "backgroundColor": "#dfe6ef" }
 }
