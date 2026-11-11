@@ -118,7 +118,11 @@ body.pfon .prow{display:flex}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--txt);font-family:"Noto Sans Armenian",system-ui,sans-serif;font-size:16px;
 padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(80px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
-header{padding:16px 16px 6px;display:flex;align-items:center;gap:10px}
+header{padding:calc(10px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:6;background:#07122bf2;backdrop-filter:blur(8px);border-bottom:1px solid #1d346655}
+.fab{position:fixed;right:12px;z-index:7;display:flex;flex-direction:column;gap:8px;bottom:calc(74px + env(safe-area-inset-bottom))}
+.fab button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#132a5aee;color:var(--txt);font-size:20px;box-shadow:0 4px 14px #0008;display:none;padding:0}
+.fab button.on{display:block}
+.fab #fabSum{width:auto;border-radius:22px;padding:0 14px;font-size:14px;font-weight:700;background:#2f8cffee;border-color:#2f8cff}
 header svg{flex:none}
 header h1{font-size:19px;margin:0;font-weight:700}
 header h1 span{color:var(--acc2)}
@@ -172,6 +176,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:#0a
 <span id="cloudSt" class="cst" title=""></span>
 </header>
 
+<div class="fab"><button type="button" id="fabUp" aria-label="Վերև">⬆</button><button type="button" id="fabSum" aria-label="Ընդամենը">🧮</button><button type="button" id="fabDown" aria-label="Ներքև">⬇</button></div>
 <main>
 <!-- ============ ԳՆԱՀԱՇՎԱՐԿ ============ -->
 <section class="view on" id="v-quote">
@@ -2051,10 +2056,28 @@ function show(v){
   document.querySelectorAll('nav button').forEach(b=>{if(v==='tools'&&b.dataset.v==='set')b.classList.add('on')});
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   window.scrollTo(0,0);
+  if(typeof fabUpd==='function')setTimeout(fabUpd,50);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{location.hash=b.dataset.v==='quote'?'':b.dataset.v;show(b.dataset.v)});
 window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
-$('backBtn').onclick=()=>{if(history.length>1&&location.hash)history.back();else{location.hash='';show('quote')}};
+$('backBtn').onclick=()=>{
+  if($('v-cli').classList.contains('on')&&$('cliCard').style.display!=='none'){$('cliCard').style.display='none';cliOpen=null;window.scrollTo({top:0,behavior:'smooth'});return}
+  location.hash='';show('quote')};
+/* ---------- floating scroll buttons: up / to total / down ---------- */
+function fabUpd(){
+  const y=window.scrollY,h=document.documentElement.scrollHeight-window.innerHeight,onQ=$('v-quote').classList.contains('on');
+  const tot=document.querySelector('#v-quote .card.total');const tr=tot?tot.getBoundingClientRect():null;
+  const totVis=tr&&tr.top<window.innerHeight&&tr.bottom>0;
+  $('fabUp').classList.toggle('on',y>300);
+  $('fabSum').classList.toggle('on',onQ&&!totVis&&h>200);
+  $('fabSum').textContent='🧮 '+$('sum').textContent;
+  $('fabDown').classList.toggle('on',!onQ&&h-y>300);
+}
+$('fabUp').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+$('fabDown').onclick=()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});
+$('fabSum').onclick=()=>{const t=document.querySelector('#v-quote .card.total');const hh=document.querySelector('header').offsetHeight;window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-hh-8,behavior:'smooth'})};
+window.addEventListener('scroll',fabUpd,{passive:true});window.addEventListener('resize',fabUpd);
+new MutationObserver(fabUpd).observe(document.querySelector('main'),{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
 
 catUI();renderResults();renderCart();renderItems();renderCustoms();renderPrices();calcQuote();calcHdd();calcPoe();calcLen();
 show(location.hash.slice(1));
