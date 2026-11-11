@@ -165,6 +165,9 @@ nav svg{width:22px;height:22px}
 .del{background:none;border:none;color:var(--bad);font-size:20px;width:28px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1d3a7a;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
+.shc{position:fixed;inset:0;background:#0006;z-index:15;display:flex;align-items:flex-end;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
+.shc-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;width:100%;max-width:420px;box-shadow:0 10px 30px #0004}
+.shc-box b{display:block;text-align:center;font-size:16px}
 pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var(--field);border-radius:9px;padding:10px;margin:8px 0 0;display:none;user-select:all}
 </style>
 </head>
@@ -236,14 +239,14 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var
     <button type="button" id="pfBtn" class="pfbtn">👁 Շահույթ</button>
     <div id="pfBox" class="pfbox" style="display:none"></div>
     <button class="btn" id="sendPdf" type="button" style="background:#7360f2">📤 Ուղարկել PDF-ը (Viber, WhatsApp, Telegram…)</button>
-    <div class="sub" style="text-align:center;margin-top:10px">կամ տեքստով՝</div>
+    <div class="sub" style="text-align:center;margin-top:10px">կամ ընտրեք հավելվածը (PDF կամ տեքստ)՝</div>
     <div class="share" style="margin-top:6px">
       <a id="shIg" class="sh ig" href="https://www.instagram.com/direct/inbox/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Instagram</a>
       <a id="shTg" class="sh tg" href="https://t.me/share/url" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 4.3L2.9 11.5c-1 .4-1 1.6.1 1.9l4.6 1.4 1.8 5.5c.2.7 1.1.9 1.6.4l2.6-2.4 4.8 3.5c.6.4 1.4.1 1.6-.6l3.2-15.1c.2-1-.7-1.8-1.7-1.4zM9.8 14.4l-.4 3.6-1.3-4 8.6-5.6-6.9 6z"/></svg>Telegram</a>
       <a id="shVb" class="sh vb" href="viber://forward?text=" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.9 2 3 4.6 3 10.3v2.4c0 3.8 1.9 6.2 4.8 7.2V22c0 .5.6.8 1 .4l2.1-2.1h1.1c5.1 0 9-2.6 9-8.3v-1.7C21 4.6 17.1 2 12 2zm4.6 13.3l-.9.9c-.8.8-2.6.2-4.4-1.6s-2.6-3.6-1.8-4.5l.9-.8c.3-.3.8-.3 1.1 0l1 1.2c.3.3.3.8-.1 1.1l-.5.5c.3.7 1.2 1.8 2.2 2.3l.5-.5c.3-.3.8-.3 1.1 0l1.1 1c.2.4.2.9-.2 1.4zM13 6.5a4.5 4.5 0 014.5 4.5h-1A3.5 3.5 0 0013 7.5zm0 2a2.5 2.5 0 012.5 2.5h-1A1.5 1.5 0 0013 9.5z"/></svg>Viber</a>
       <a id="shWa" class="sh wa" href="https://wa.me/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-2.9.8.8-2.8-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.1 5.1 0 001.1 2.7 11.7 11.7 0 004.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 001.7-1.2 2.2 2.2 0 00.2-1.2c-.1-.1-.3-.2-.5-.3z"/></svg>WhatsApp</a>
     </div>
-    <div class="note" id="shNote" style="text-align:center">Վերևի կոճակը ուղարկում է գեղեցիկ PDF-ը․ բացված պատուհանում ընտրեք Viber, WhatsApp, Telegram կամ Instagram։</div>
+    <div class="note" id="shNote" style="text-align:center">Telegram, Viber կամ WhatsApp սեղմելիս կհարցնի՝ PDF ֆայլով, թե տեքստով։ Instagram-ով գնում է միայն տեքստը։</div>
     <button class="btn" id="pdfQ" style="background:#fff;color:#16233d;border:1px solid var(--line)">⬇ Ներբեռնել PDF</button>
     <button class="btn ghost" id="copyQ">Պատճենել գնահաշվարկը</button>
     <pre id="qtext"></pre>
@@ -1182,9 +1185,28 @@ function copyNow(msg){
   try{navigator.clipboard.writeText(t).then(()=>toast(msg),()=>{});}catch(e){}
 }
 $('shIg').addEventListener('click',()=>{updShare();copyNow('Պատճենված է ✓ — Instagram-ում սեղմեք Paste')});
-$('shTg').addEventListener('click',()=>updShare());
-$('shWa').addEventListener('click',()=>updShare());
-$('shVb').addEventListener('click',()=>{updShare();copyNow('Պատճենված է ✓ — եթե Viber-ում տեքստը չլինի, սեղմեք Paste')});
+/* Telegram / Viber / WhatsApp: ask «PDF file or text?» */
+const DESKTOP=/Electron/i.test(navigator.userAgent);
+const APPS={shTg:{n:'Telegram',app:'tg://'},shVb:{n:'Viber',app:'viber://chats'},shWa:{n:'WhatsApp',app:'whatsapp://'}};
+function shareChoice(id){
+  const a=APPS[id];if(!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
+  let m=$('shChoose');if(m)m.remove();
+  m=document.createElement('div');m.id='shChoose';m.className='shc';
+  m.innerHTML=`<div class="shc-box"><b>Ուղարկել ${a.n}-ով</b><button type="button" class="btn sc-pdf">📄 PDF ֆայլով</button><button type="button" class="btn ghost sc-txt">💬 Տեքստով</button><button type="button" class="btn ghost sc-x" style="border:none;color:var(--mut)">Չեղարկել</button></div>`;
+  document.body.appendChild(m);
+  const close=()=>m.remove();
+  m.onclick=e=>{if(e.target===m)close()};
+  m.querySelector('.sc-x').onclick=close;
+  m.querySelector('.sc-txt').onclick=()=>{close();updShare();
+    if(id==='shVb')copyNow('Պատճենված է ✓ — եթե Viber-ում տեքստը չլինի, սեղմեք Paste');
+    window.open($(id).href,'_blank','noopener')};
+  m.querySelector('.sc-pdf').onclick=async()=>{close();
+    if(NATIVE||(!DESKTOP&&canShareFiles())){toast('Բացված ցանկում ընտրեք '+a.n);$('sendPdf').click();return}
+    await $('pdfQ').onclick();
+    if(DESKTOP){toast(`PDF-ը պահվեց «Downloads»-ում ✓ — քաշեք ֆայլը ${a.n}-ի չաթի մեջ`);setTimeout(()=>window.open(a.app,'_blank'),900)}
+    else toast(`PDF-ը ներբեռնվեց ✓ — ${a.n}-ում սեղմեք 📎 և ընտրեք այն`)};
+}
+Object.keys(APPS).forEach(id=>$(id).addEventListener('click',e=>{e.preventDefault();shareChoice(id)}));
 $('copyQ').onclick=async()=>{
   const t=quoteText();const pre=$('qtext');pre.textContent=t;
   try{await navigator.clipboard.writeText(t);toast('Պատճենված է ✓ — տեղադրեք Viber/Telegram');pre.style.display='none'}
