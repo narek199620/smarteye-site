@@ -17,7 +17,11 @@
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <style>
-.cstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.cstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px}.cstats .cstat{padding:8px 3px}.cstats .cstat small{font-size:10.5px;overflow-wrap:anywhere}
+.badge2.debt{background:#d4323f1f;color:var(--bad)}
+.paybox{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.paybox div{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:7px;text-align:center}.paybox b{display:block;font-size:15px}.paybox small{color:var(--mut);font-size:11px}
+.pst{display:inline-block;margin-top:5px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px}.pst.ok{background:#16935b1f;color:var(--ok)}.pst.bad{background:#d4323f1f;color:var(--bad)}
+.ev .acts button.pay{color:var(--ok);border-color:var(--ok)}
 .cstat{background:var(--field);border:1px solid var(--line);border-radius:11px;padding:8px;text-align:center}.cstat b{display:block;font-size:20px}.cstat small{color:var(--mut);font-size:11.5px}
 .cli{display:flex;gap:8px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--sep);cursor:pointer}
 .cli .n{flex:1;min-width:0}.cli .n b{display:block;font-size:15px}.cli .n small{display:block;color:var(--mut);font-size:12px}
@@ -1833,22 +1837,28 @@ function cliStatus(c){ // free-service window from the latest installation
   return {cls:'off',txt:'վճարովի',end,inst};
 }
 const camsOf=c=>(c.inst||[]).reduce((a,i)=>a+(+i.cams||0),0);
+// payments: price/amount = billed, got = received (old records without «got» count as fully paid)
+const dueOf=x=>{const b=+(x.price??x.amount)||0;if(x.amount!==undefined&&x.price===undefined&&!x.paid)return {b:0,g:0,d:0};const g=x.got===undefined?b:(+x.got||0);return {b,g,d:Math.max(0,b-g)}};
+function payOf(c){let b=0,g=0;[...(c.inst||[]),...(c.visits||[])].forEach(x=>{const r=dueOf(x);b+=r.b;g+=r.g});return {b,g,d:Math.max(0,b-g)}}
+const debtOf=c=>[...(c.inst||[]),...(c.visits||[])].reduce((a,x)=>a+dueOf(x).d,0);
+const pst=x=>{const r=dueOf(x);if(!r.b)return '';return r.d?`<span class="pst bad">🔴 պարտք ${fmt(r.d)}${r.g?' · վճարված '+fmt(r.g):''}</span>`:`<span class="pst ok">✅ վճարված</span>`};
 function renderClients(){
   const q=norm($('cliSearch').value);
   const st=clients.map(c=>({c,s:cliStatus(c)}));
+  const totDebt=clients.reduce((a,c)=>a+debtOf(c),0),nDebt=clients.filter(c=>debtOf(c)>0).length;
   const nFree=st.filter(x=>x.s.cls==='ok'||x.s.cls==='warn').length,nSoon=st.filter(x=>x.s.cls==='warn').length;
-  $('cliStats').innerHTML=`<div class="cstat"><b>${clients.length}</b><small>հաճախորդ</small></div><div class="cstat"><b>${clients.reduce((a,c)=>a+camsOf(c),0)}</b><small>տեսախցիկ տեղադրված</small></div><div class="cstat"><b>${nFree}</b><small>անվճար սպասարկման մեջ</small></div>`;
-  const ch=$('cliChips');ch.innerHTML='';[['','Բոլորը'],['free','🟢 Անվճար'],['soon',`🟠 Շուտով ավարտվում է${nSoon?' · '+nSoon:''}`],['paid','⚪ Վճարովի']].forEach(([f,l])=>{const b=document.createElement('button');b.type='button';b.className='chip'+(cliFilter===f?' on':'');b.textContent=l;b.onclick=()=>{cliFilter=f;LS.set('cliFilter',f);renderClients()};ch.appendChild(b)});
-  const list=st.filter(({c,s})=>(!cliFilter||(cliFilter==='free'&&(s.cls==='ok'||s.cls==='warn'))||(cliFilter==='soon'&&s.cls==='warn')||(cliFilter==='paid'&&s.cls==='off'))
+  $('cliStats').innerHTML=`<div class="cstat"><b>${clients.length}</b><small>հաճախորդ</small></div><div class="cstat"><b>${clients.reduce((a,c)=>a+camsOf(c),0)}</b><small>տեսախցիկ տեղադրված</small></div><div class="cstat"><b>${nFree}</b><small>անվճար սպասարկման մեջ</small></div><div class="cstat"><b style="color:${totDebt?'var(--bad)':'inherit'};font-size:${totDebt>=100000?12.5:16}px;white-space:nowrap;line-height:24px">${totDebt?fmt(totDebt):'0'}</b><small>պարտք</small></div>`;
+  const ch=$('cliChips');ch.innerHTML='';[['','Բոլորը'],['free','🟢 Անվճար'],['soon',`🟠 Շուտով ավարտվում է${nSoon?' · '+nSoon:''}`],['paid','⚪ Վճարովի'],['debt',`🔴 Պարտք${nDebt?' · '+nDebt:''}`]].forEach(([f,l])=>{const b=document.createElement('button');b.type='button';b.className='chip'+(cliFilter===f?' on':'');b.textContent=l;b.onclick=()=>{cliFilter=f;LS.set('cliFilter',f);renderClients()};ch.appendChild(b)});
+  const list=st.filter(({c,s})=>(!cliFilter||(cliFilter==='free'&&(s.cls==='ok'||s.cls==='warn'))||(cliFilter==='soon'&&s.cls==='warn')||(cliFilter==='paid'&&s.cls==='off')||(cliFilter==='debt'&&debtOf(c)>0))
     &&(!q||norm([c.name,c.phone,c.addr,c.note,...(c.inst||[]).map(i=>i.items+' '+i.work),...(c.visits||[]).map(v=>v.work)].join(' ')).includes(q)))
     .sort((a,b)=>String(b.c.updated||'').localeCompare(String(a.c.updated||'')));
   const box=$('cliList');box.innerHTML='';
   if(!list.length)box.innerHTML=`<div class="note">${clients.length?'Չի գտնվել':'Դեռ հաճախորդ չկա։ Ավելացրեք «＋ Նոր հաճախորդ»-ով կամ գնահաշվարկից՝ «✅ Պատվերը ընդունվեց»։'}</div>`;
   list.forEach(({c,s})=>{const r=document.createElement('div');r.className='cli';const lv=(c.visits||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
-    r.innerHTML=`<div class="n"><b></b><small></small></div><span class="badge2 ${s.cls}"></span>`;
+    const dbt=debtOf(c);r.innerHTML=`<div class="n"><b></b><small></small></div>${dbt?`<span class="badge2 debt">🔴 ${fmt(dbt)}</span>`:''}<span class="badge2 ${s.cls}"></span>`;
     r.querySelector('b').textContent=c.name||'Առանց անվան';
-    r.querySelector('small').textContent=[c.addr,camsOf(c)?camsOf(c)+' տեսախցիկ':'',s.inst?'տեղադրվել է '+ago(s.inst.date):'',lv?'վերջին այց՝ '+dfmt(lv.date):''].filter(Boolean).join(' · ');
-    r.querySelector('.badge2').textContent=s.txt;r.onclick=()=>openClient(c.id);box.appendChild(r)});
+    r.querySelector('small').textContent=[c.addr,camsOf(c)?camsOf(c)+' տեսախցիկ':'',s.inst?'տեղադրվել է '+ago(s.inst.date):'',(c.visits||[]).length?(c.visits.length+' այց'):'',lv?'վերջինը՝ '+dfmt(lv.date):''].filter(Boolean).join(' · ');
+    r.querySelector('.badge2.'+s.cls).textContent=s.txt;r.onclick=()=>openClient(c.id);box.appendChild(r)});
 }
 function openClient(id){
   const c=id?clients.find(x=>x.id===id):{id:uid(),name:'',phone:'',addr:'',note:'',inst:[],visits:[],created:new Date().toISOString()};
@@ -1861,6 +1871,7 @@ function openClient(id){
    <div class="grid2" style="margin-top:8px"><button type="button" class="btn c_save" style="margin:0">💾 Պահպանել</button><button type="button" class="btn ghost c_close" style="margin:0">Փակել</button></div>
    ${ph?`<div class="grid3"><a class="btn ghost" style="text-align:center;text-decoration:none;font-size:13px" href="tel:+${ph}">📞 Զանգ</a><a class="btn ghost" style="text-align:center;text-decoration:none;font-size:13px" target="_blank" href="viber://chat?number=%2B${ph}">Viber</a><a class="btn ghost" style="text-align:center;text-decoration:none;font-size:13px" target="_blank" href="https://wa.me/${ph}">WhatsApp</a></div>`:''}</div>
    ${id?`<div class="sub" style="margin-top:12px">Կարգավիճակ՝ <span class="badge2 ${s.cls}">${esc(s.txt)}</span>${s.end?` · ակցիան ${s.cls==='off'?'ավարտվել է':'մինչև'} ${dfmt(s.end)}`:''}</div>
+   ${(()=>{const p=payOf(c);const nv=(c.visits||[]).length;return `<div class="paybox"><div><b>${fmt(p.b)}</b><small>ընդհանուր</small></div><div><b style="color:var(--ok)">${fmt(p.g)}</b><small>վճարված</small></div><div><b style="color:${p.d?'var(--bad)':'inherit'}">${fmt(p.d)}</b><small>պարտք</small></div></div><div class="sub" style="margin-top:6px">🔧 Այցեր՝ <b>${nv}</b> անգամ${nv?` · ${(c.visits||[]).filter(v=>v.paid).length} վճարովի, ${(c.visits||[]).filter(v=>!v.paid).length} անվճար`:''}</div>`})()}
    <h2 style="margin-top:14px">🛠 Տեղադրումներ</h2><div class="c_inst"></div><button type="button" class="pjadd c_addi">＋ Տեղադրում</button>
    <h2 style="margin-top:14px">🔧 Սպասարկում / այցեր</h2><div class="c_vis"></div><button type="button" class="pjadd c_addv">＋ Այց / աշխատանք</button>
    <div class="c_form"></div>
@@ -1873,15 +1884,17 @@ function openClient(id){
   // installations
   const ib=q('.c_inst');(c.inst||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(it=>{
     const end=addMonths(it.date,it.free??6);const d=document.createElement('div');d.className='ev';
-    d.innerHTML=`<b>${dfmt(it.date)} · ${it.cams||0} տեսախցիկ</b><small>${esc(ago(it.date))} · անվճար սպասարկում մինչև ${dfmt(end)} (${it.free??6} ամիս)${it.price?' · '+fmt(it.price):''}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(it.items||'')}</div>${it.work?`<div style="color:var(--acc2);margin-top:3px">${esc(it.work)}</div>`:''}<div class="acts"><button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
+    d.innerHTML=`<b>${dfmt(it.date)} · ${it.cams||0} տեսախցիկ</b><small>${esc(ago(it.date))} · անվճար սպասարկում մինչև ${dfmt(end)} (${it.free??6} ամիս)${it.price?' · '+fmt(it.price):''}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(it.items||'')}</div>${it.work?`<div style="color:var(--acc2);margin-top:3px">${esc(it.work)}</div>`:''}${pst(it)}<div class="acts">${dueOf(it).d?'<button type="button" class="pay">✓ Վճարվեց</button>':''}<button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
     d.querySelector('.e').onclick=()=>instForm(c,it);
+    const pb=d.querySelector('.pay');if(pb)pb.onclick=async()=>{it.got=+it.price||0;await saveClient(c);openClient(c.id);renderClients();toast('Վճարված է ✓')};
     const x=d.querySelector('.x');x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent='Ջնջե՞լ';return}c.inst=c.inst.filter(z=>z!==it);await saveClient(c);openClient(c.id);renderClients()};
     ib.appendChild(d)});
   if(!(c.inst||[]).length)ib.innerHTML='<div class="note">Դեռ տեղադրում չկա</div>';
   const vb=q('.c_vis');(c.visits||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(v=>{
     const d=document.createElement('div');d.className='ev v';const free=v.paid?'':'անվճար';
-    d.innerHTML=`<b>${dfmt(v.date)}</b><small>${esc(ago(v.date))} · ${v.paid?'վճարովի '+fmt(v.amount||0):'անվճար (ակցիա)'}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(v.work||'')}</div><div class="acts"><button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
+    d.innerHTML=`<b>${dfmt(v.date)}</b><small>${esc(ago(v.date))} · ${v.paid?'վճարովի '+fmt(v.amount||0):'անվճար (ակցիա)'}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(v.work||'')}</div>${v.paid?pst(v):''}<div class="acts">${dueOf(v).d?'<button type="button" class="pay">✓ Վճարվեց</button>':''}<button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
     d.querySelector('.e').onclick=()=>visitForm(c,v);
+    const pb=d.querySelector('.pay');if(pb)pb.onclick=async()=>{v.got=+v.amount||0;await saveClient(c);openClient(c.id);renderClients();toast('Վճարված է ✓')};
     const x=d.querySelector('.x');x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent='Ջնջե՞լ';return}c.visits=c.visits.filter(z=>z!==v);await saveClient(c);openClient(c.id);renderClients()};
     vb.appendChild(d)});
   if(!(c.visits||[]).length)vb.innerHTML='<div class="note">Դեռ այց չկա</div>';
@@ -1898,10 +1911,11 @@ function instForm(c,it){
    <button type="button" class="pjadd i_fromq">⬇ Լրացնել ընթացիկ գնահաշվարկից</button>
    <label>Ինչ աշխատանք է արվել<textarea class="i_w" rows="2" placeholder="մալուխ 80 մ, NVR կարգաբերում, հավելված հեռախոսում…"></textarea></label>
    <div class="grid2"><label>Անվճար սպասարկում (ամիս)<input type="number" inputmode="numeric" class="i_f"></label><label>Գումար ֏<input type="number" inputmode="numeric" class="i_p"></label></div>
+   <div class="grid2"><label>Վճարված ֏<input type="number" inputmode="numeric" class="i_g" placeholder="0"></label><label>&nbsp;<button type="button" class="pjadd i_all" style="margin:0;width:100%;padding:9px">✓ Ամբողջը վճարված է</button></label></div>
    <button type="button" class="btn i_save">Պահպանել</button></div>`;
-  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';q('.i_i').value=it.items||'';q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';
+  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';q('.i_i').value=it.items||'';q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';q('.i_g').value=it.got===undefined?(isNew?'':(it.price||'')):(it.got||'');q('.i_all').onclick=()=>{q('.i_g').value=q('.i_p').value||0};
   q('.i_fromq').onclick=()=>{const cs=cartSummary();if(!cs.items){toast('Գնահաշվարկը դատարկ է');return}q('.i_i').value=cs.items;q('.i_c').value=cs.cams;q('.i_p').value=Math.round(calcQuote().tot)};
-  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;it.items=q('.i_i').value.trim();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;
+  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;it.items=q('.i_i').value.trim();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;it.got=Math.min(+q('.i_g').value||0,it.price);
     c.inst=c.inst||[];if(isNew)c.inst.push(it);await saveClient(c);openClient(c.id);renderClients();toast('Պահպանվեց ✓')};
   f.scrollIntoView({behavior:'smooth'});
 }
@@ -1911,10 +1925,12 @@ function visitForm(c,v){
    <label>Ամսաթիվ<input type="date" class="v_d"></label>
    <label>Ինչ է արվել<textarea class="v_w" rows="3" placeholder="մաքրեցի տեսախցիկները, փոխեցի սնուցման բլոկը…"></textarea></label>
    <div class="grid2"><label>Վճարում<select class="v_t"><option value="0">Անվճար (ակցիա)</option><option value="1">Վճարովի</option></select></label><label>Գումար ֏<input type="number" inputmode="numeric" class="v_a"></label></div>
+   <div class="grid2 v_gb"><label>Վճարված ֏<input type="number" inputmode="numeric" class="v_g" placeholder="0"></label><label>&nbsp;<button type="button" class="pjadd v_all" style="margin:0;width:100%;padding:9px">✓ Ամբողջը վճարված է</button></label></div>
    <div class="note">${s.cls==='off'?'Անվճար սպասարկման ժամկետն ավարտվել է՝ այցը վճարովի է (10 000 ֏ + աշխատանք)։':'Հաճախորդը դեռ անվճար սպասարկման մեջ է։'}</div>
    <button type="button" class="btn v_save">Պահպանել</button></div>`;
-  const q=x=>f.querySelector(x);q('.v_d').value=v.date;q('.v_w').value=v.work||'';q('.v_t').value=v.paid?'1':'0';q('.v_a').value=v.amount||'';
-  q('.v_save').onclick=async()=>{v.date=q('.v_d').value||today();v.work=q('.v_w').value.trim();v.paid=q('.v_t').value==='1';v.amount=v.paid?(+q('.v_a').value||0):0;
+  const q=x=>f.querySelector(x);q('.v_d').value=v.date;q('.v_w').value=v.work||'';q('.v_t').value=v.paid?'1':'0';q('.v_a').value=v.amount||'';q('.v_g').value=v.got===undefined?(isNew?'':(v.amount||'')):(v.got||'');
+  const vgb=()=>{f.querySelector('.v_gb').style.display=q('.v_t').value==='1'?'grid':'none'};vgb();q('.v_t').onchange=vgb;q('.v_all').onclick=()=>{q('.v_g').value=q('.v_a').value||0};
+  q('.v_save').onclick=async()=>{v.date=q('.v_d').value||today();v.work=q('.v_w').value.trim();v.paid=q('.v_t').value==='1';v.amount=v.paid?(+q('.v_a').value||0):0;v.got=v.paid?Math.min(+q('.v_g').value||0,v.amount):0;
     c.visits=c.visits||[];if(isNew)c.visits.push(v);await saveClient(c);openClient(c.id);renderClients();toast('Պահպանվեց ✓')};
   f.scrollIntoView({behavior:'smooth'});
 }
@@ -1924,7 +1940,7 @@ $('toClient').onclick=async()=>{
   const cs=cartSummary();if(!cs.items&&!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
   const nm=$('client').value.trim();if(!nm){toast('Գրեք հաճախորդի անունը գնահաշվարկում');$('client').focus();return}
   let c=clients.find(x=>norm(x.name)===norm(nm));if(!c)c={id:uid(),name:nm,phone:'',addr:'',note:'',inst:[],visits:[],created:new Date().toISOString()};
-  c.inst=c.inst||[];c.inst.push({id:uid(),date:today(),cams:cs.cams,items:cs.items,work:quoteLines().filter(l=>l.kind==='work').map(l=>`${l.n} × ${l.q}${l.u?' '+l.u:''}`).join(', '),free:promoActive()?6:0,price:Math.round(calcQuote().tot)});
+  c.inst=c.inst||[];c.inst.push({id:uid(),date:today(),cams:cs.cams,items:cs.items,work:quoteLines().filter(l=>l.kind==='work').map(l=>`${l.n} × ${l.q}${l.u?' '+l.u:''}`).join(', '),free:promoActive()?6:0,price:Math.round(calcQuote().tot),got:0});
   await saveClient(c);location.hash='cli';show('cli');openClient(c.id);toast(`«${c.name}»՝ տեղադրումը ավելացվեց ✓`);
 };
 
