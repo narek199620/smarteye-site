@@ -147,6 +147,8 @@ main{padding:8px 12px;max-width:560px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .card h2{font-size:15px;margin:0 0 10px;color:var(--acc2);font-weight:600}
 .row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--sep)}
+.devs{margin-top:4px}.dev{display:grid;grid-template-columns:1fr 58px 34px;gap:6px;padding:8px;margin-bottom:6px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.dev .dm,.dev .ds{grid-column:1/-1}.dev select,.dev input{margin:0;padding:8px 7px;font-size:15px}.dev .dx{border:1px solid var(--line);background:var(--btn2);color:var(--bad);border-radius:9px;font-size:20px;padding:0}
 .wtools{display:flex;gap:8px;margin-bottom:6px}.wtools input{flex:1;min-width:0}
 .wg{border:1px solid var(--line);border-radius:12px;margin-top:8px;background:var(--field);overflow:hidden}
 .wgh{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:11px 12px;font-family:inherit;font-size:15px;font-weight:700;color:var(--txt);text-align:left;cursor:pointer}
@@ -2011,20 +2013,62 @@ function openClient(id){
   card.scrollIntoView({behavior:'smooth'});
 }
 function cartSummary(){const L=quoteLines().filter(l=>l.kind==='prod');return {items:L.map(l=>`${l.n} × ${l.q}${l.d?' ('+l.d+')':''}`).join('\n'),cams:camsInLines(L).n}}
+const DEV_TYPES=['IP տեսախցիկ','Անալոգ տեսախցիկ','NVR','DVR','Կոմպլեկտ (kit)','HDD','PoE Switch','Ռաութեր / Wi-Fi','Մոնիտոր','Ալարմ','Սնուցում / UPS','Այլ'];
+const isCamT=t=>/տեսախցիկ/.test(t);
+function guessDev(s){s=String(s||'');
+  if(/\bkit\b|cpk|комплект|կոմպլեկտ|\bset\b/i.test(s))return 'Կոմպլեկտ (kit)';
+  if(/ds-2ce|hac-|turbo\s?hd|hdcvi|hd-?tvi|ahd|անալոգ|analog/i.test(s))return 'Անալոգ տեսախցիկ';
+  if(/\bdvr\b|xvr|ds-7[12]\d{2}h|hqhi|huhi|dvr/i.test(s))return 'DVR';
+  if(/\bnvr\b|ds-7[6-9]\d{2}ni|ni-[qkime]|nvr\d/i.test(s))return 'NVR';
+  if(/\bhdd\b|սկավառակ|purz|purx|skyhawk|\b\d+\s?tb\b/i.test(s))return 'HDD';
+  if(/switch|սվիչ/i.test(s))return 'PoE Switch';
+  if(/router|ռաութեր|wi-?fi\s?(router|ap)|access point|tp-?link|mikrotik|ubiquiti|unifi/i.test(s))return 'Ռաութեր / Wi-Fi';
+  if(/monitor|մոնիտոր/i.test(s))return 'Մոնիտոր';
+  if(/ax\s?pro|alarm|ալարմ|pir|սենսոր|սիրենա/i.test(s))return 'Ալարմ';
+  if(/ups|սնուցման|power supply|adapter/i.test(s))return 'Սնուցում / UPS';
+  if(/ds-2cd|ipc-|\bip\b|տեսախց|camera|камер/i.test(s))return 'IP տեսախցիկ';
+  return 'Այլ'}
+function devsFromText(txt){return String(txt||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+  let m=l.replace(/^(IP տեսախցիկ|Անալոգ տեսախցիկ|NVR|DVR|HDD|PoE Switch|Ռաութեր \/ Wi-Fi|Մոնիտոր|Ալարմ|Սնուցում \/ UPS|Կոմպլեկտ \(kit\)|Այլ):\s*/,'');
+  const t=DEV_TYPES.find(x=>l.startsWith(x+':'))||guessDev(l);
+  let sn='';const sm=m.match(/\(SN\s*([^)]+)\)/i);if(sm){sn=sm[1].trim();m=m.replace(sm[0],'')}
+  let q=1;const qm=m.match(/[×x*]\s*(\d+)\s*$/i)||m.match(/[×x*]\s*(\d+)\b/);if(qm){q=+qm[1];m=m.replace(qm[0],'')}
+  return {t,m:m.replace(/\s+/g,' ').trim(),q,sn}})}
+const devsText=ds=>ds.filter(d=>d.m||d.sn).map(d=>`${d.t}: ${d.m}${d.q>1?' × '+d.q:''}${d.sn?' (SN '+d.sn+')':''}`).join('\n');
+function devsFromCart(){return quoteLines().filter(l=>l.kind==='prod').map(l=>({t:guessDev((l.d||'')+' '+l.n),m:String(l.n).split(' — ')[0],q:l.q,sn:''}))}
 function instForm(c,it){
   const f=$('cliCard').querySelector('.c_form');const isNew=!it;it=it||{id:uid(),date:today(),cams:0,items:'',work:'',free:6,price:0};
   f.innerHTML=`<div class="pform cform" style="margin-top:10px"><b>${isNew?'＋ Նոր տեղադրում':'✎ Տեղադրում'}</b>
    <div class="grid2"><label>Ամսաթիվ<input type="date" class="i_d"></label><label>Տեսախցիկների քանակ<input type="number" inputmode="numeric" class="i_c"></label></div>
-   <label>Սարքեր (ամեն մեկը նոր տողում)<textarea class="i_i" rows="4" placeholder="DS-2CD1043G2-LIU × 4&#10;DS-7604NI-Q1/4P × 1&#10;WD20PURZ 2TB"></textarea></label>
-   <button type="button" class="pjadd i_fromq">⬇ Լրացնել ընթացիկ գնահաշվարկից</button>
+   <div class="sub" style="margin-top:8px;color:var(--txt);font-weight:600">Սարքեր</div>
+   <div class="devs i_devs"></div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="pjadd i_adddev">＋ Սարք</button><button type="button" class="pjadd i_fromq">⬇ Լրացնել գնահաշվարկից</button></div>
    <label>Ինչ աշխատանք է արվել<textarea class="i_w" rows="2" placeholder="մալուխ 80 մ, NVR կարգաբերում, հավելված հեռախոսում…"></textarea></label>
    <div class="grid2"><label>Անվճար սպասարկում (ամիս)<input type="number" inputmode="numeric" class="i_f"></label><label>Գումար ֏<input type="number" inputmode="numeric" class="i_p"></label></div>
-   <div class="grid2"><label>Երաշխիք (ամիս)<input type="number" inputmode="numeric" class="i_w2" placeholder="12"></label><label>Սերիական համարներ<textarea class="i_sn" rows="1" placeholder="DS-… / SN, ամեն մեկը նոր տողում"></textarea></label></div>
+   <div class="grid2"><label>Երաշխիք (ամիս)<input type="number" inputmode="numeric" class="i_w2" placeholder="12"></label><label>Այլ նշում / SN<textarea class="i_sn" rows="1" placeholder="ըստ ցանկության"></textarea></label></div>
    <div class="grid2"><label>Վճարված ֏<input type="number" inputmode="numeric" class="i_g" placeholder="0"></label><label>&nbsp;<button type="button" class="pjadd i_all" style="margin:0;width:100%;padding:9px">✓ Ամբողջը վճարված է</button></label></div>
    <button type="button" class="btn i_save">Պահպանել</button></div>`;
-  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';q('.i_i').value=it.items||'';q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';q('.i_w2').value=it.war??12;q('.i_sn').value=it.sn||'';q('.i_g').value=it.got===undefined?(isNew?'':(it.price||'')):(it.got||'');q('.i_all').onclick=()=>{q('.i_g').value=q('.i_p').value||0};
-  q('.i_fromq').onclick=()=>{const cs=cartSummary();if(!cs.items){toast('Գնահաշվարկը դատարկ է');return}q('.i_i').value=cs.items;q('.i_c').value=cs.cams;q('.i_p').value=Math.round(calcQuote().tot)};
-  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;it.items=q('.i_i').value.trim();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;it.war=q('.i_w2').value===''?12:(+q('.i_w2').value||0);it.sn=q('.i_sn').value.trim();it.got=Math.min(+q('.i_g').value||0,it.price);
+  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';
+  let devs=Array.isArray(it.devs)&&it.devs.length?JSON.parse(JSON.stringify(it.devs)):devsFromText(it.items);
+  const camSum=()=>devs.filter(d=>isCamT(d.t)).reduce((a,d)=>a+(+d.q||0),0);const autoCams=()=>devs.some(x=>isCamT(x.t))&&!devs.some(x=>/kit/.test(x.t));
+  const drawDevs=()=>{const box=q('.i_devs');box.innerHTML='';
+    if(!devs.length)box.innerHTML='<div class="note" style="margin:4px 0">Դեռ սարք չկա։ Սեղմեք «＋ Սարք» կամ «⬇ Լրացնել գնահաշվարկից»։</div>';
+    devs.forEach((d,ix)=>{const r=document.createElement('div');r.className='dev';
+      r.innerHTML=`<select class="dt">${DEV_TYPES.map(t=>`<option${t===d.t?' selected':''}>${t}</option>`).join('')}</select><input type="number" inputmode="numeric" class="dq" min="1" title="Քանակ"><button type="button" class="dx" title="Ջնջել">×</button><input type="text" class="dm" list="devModels" placeholder="Մոդել, օր․ DS-2CD1043G2-LIU"><input type="text" class="ds" placeholder="SN (ըստ ցանկության)">`;
+      const [dt,dq,dx,dm,dsn]=[r.querySelector('.dt'),r.querySelector('.dq'),r.querySelector('.dx'),r.querySelector('.dm'),r.querySelector('.ds')];
+      dq.value=d.q||1;dm.value=d.m||'';dsn.value=d.sn||'';
+      const upCams=()=>{if(autoCams())q('.i_c').value=camSum()};
+      dt.onchange=()=>{d.t=dt.value;upCams()};dq.oninput=()=>{d.q=Math.max(1,+dq.value||1);upCams()};
+      dm.oninput=()=>{d.m=dm.value;if(d.t==='Այլ'||!d._t){const g=guessDev(dm.value);if(g!=='Այլ'&&g!==d.t){d.t=g;dt.value=g;upCams()}}};dm.onfocus=()=>{d._t=d.t==='Այլ'?0:d._t};
+      dsn.oninput=()=>{d.sn=dsn.value};
+      dx.onclick=()=>{devs.splice(ix,1);drawDevs();upCams()};
+      box.appendChild(r)});
+    let dl=$('devModels');if(!dl){dl=document.createElement('datalist');dl.id='devModels';document.body.appendChild(dl)}
+    if(!dl.children.length)dl.innerHTML=[...new Set(catalog.map(x=>String(x.n).split(' — ')[0]))].slice(0,3000).map(m=>`<option value="${esc(m)}">`).join('')};
+  drawDevs();
+  q('.i_adddev').onclick=()=>{devs.push({t:'IP տեսախցիկ',m:'',q:1,sn:''});drawDevs();const ins=q('.i_devs').querySelectorAll('.dm');if(ins.length)ins[ins.length-1].focus()};q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';q('.i_w2').value=it.war??12;q('.i_sn').value=it.sn||'';q('.i_g').value=it.got===undefined?(isNew?'':(it.price||'')):(it.got||'');q('.i_all').onclick=()=>{q('.i_g').value=q('.i_p').value||0};
+  q('.i_fromq').onclick=()=>{const ds=devsFromCart();if(!ds.length){toast('Գնահաշվարկը դատարկ է');return}devs=ds;drawDevs();q('.i_c').value=camSum()||cartSummary().cams;q('.i_p').value=Math.round(calcQuote().tot)};
+  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;devs=devs.filter(d=>(d.m||'').trim()||(d.sn||'').trim()).map(d=>({t:d.t,m:(d.m||'').trim(),q:+d.q||1,sn:(d.sn||'').trim()}));it.devs=devs;it.items=devsText(devs);if(autoCams())it.cams=camSum();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;it.war=q('.i_w2').value===''?12:(+q('.i_w2').value||0);it.sn=q('.i_sn').value.trim();it.got=Math.min(+q('.i_g').value||0,it.price);
     c.inst=c.inst||[];if(isNew)c.inst.push(it);await saveClient(c);openClient(c.id);renderClients();toast('Պահպանվեց ✓')};
   f.scrollIntoView({behavior:'smooth'});
 }
@@ -2049,7 +2093,7 @@ $('toClient').onclick=async()=>{
   const cs=cartSummary();if(!cs.items&&!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
   const nm=$('client').value.trim();if(!nm){toast('Գրեք հաճախորդի անունը գնահաշվարկում');$('client').focus();return}
   let c=clients.find(x=>norm(x.name)===norm(nm));if(!c)c={id:uid(),name:nm,phone:'',addr:'',note:'',inst:[],visits:[],created:new Date().toISOString()};
-  c.inst=c.inst||[];c.inst.push({id:uid(),date:today(),cams:cs.cams,items:cs.items,work:quoteLines().filter(l=>l.kind==='work').map(l=>`${l.n} × ${l.q}${l.u?' '+l.u:''}`).join(', '),free:promoActive()?6:0,price:Math.round(calcQuote().tot),got:0});
+  c.inst=c.inst||[];const dv=devsFromCart();c.inst.push({id:uid(),date:today(),cams:cs.cams,devs:dv,items:devsText(dv),work:quoteLines().filter(l=>l.kind==='work').map(l=>`${l.n} × ${l.q}${l.u?' '+l.u:''}`).join(', '),free:promoActive()?6:0,price:Math.round(calcQuote().tot),got:0});
   await saveClient(c);location.hash='cli';show('cli');openClient(c.id);toast(`«${c.name}»՝ տեղադրումը ավելացվեց ✓`);
 };
 
