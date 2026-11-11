@@ -13,7 +13,7 @@
   "build": {
     "appId": "am.smarteye.pricemanager",
     "productName": "SmartEye Price Manager",
-    "files": ["main.js", "icon.png", "www/**/*"],
+    "files": ["main.js", "preload.js", "icon.png", "www/**/*"],
     "directories": { "output": "dist" },
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],

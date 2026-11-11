@@ -1191,7 +1191,29 @@ function copyNow(msg){
 $('shIg').addEventListener('click',()=>{updShare();copyNow('Պատճենված է ✓ — Instagram-ում սեղմեք Paste')});
 /* Telegram / Viber / WhatsApp: ask «PDF file or text?» */
 const DESKTOP=/Electron/i.test(navigator.userAgent);
-const APPS={shTg:{n:'Telegram',app:'tg://'},shVb:{n:'Viber',app:'viber://chats'},shWa:{n:'WhatsApp',app:'whatsapp://'}};
+const APPS={shTg:{n:'Telegram',app:'tg://',key:'telegram',pk:['org.telegram.messenger','org.telegram.messenger.web','org.thunderdog.challegram','org.telegram.plus']},
+  shVb:{n:'Viber',app:'viber://chats',key:'viber',pk:['com.viber.voip']},
+  shWa:{n:'WhatsApp',app:'whatsapp://',key:'whatsapp',pk:['com.whatsapp','com.whatsapp.w4b']}};
+async function pdfDirect(a){ // send the PDF straight into the chosen app
+  toast('PDF-ը պատրաստվում է…');
+  let pdf;try{pdf=await makePdf()}catch(e){toast('PDF-ը չստեղծվեց ('+(e&&e.message||e)+')');return}
+  const {blob,name}=pdf;
+  try{
+    if(NATIVE){
+      const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(blob)});
+      const w=await capPlugin('Filesystem').writeFile({path:name.replace(/[^\w.\-]+/g,'_'),data:b64,directory:'CACHE'});
+      let r=null;try{r=await capPlugin('DirectShare').share({path:w.uri,packages:a.pk,type:'application/pdf'})}catch(e){r=null}
+      if(r&&r.ok)return;
+      if(r&&!r.ok)toast(a.n+'-ը չգտնվեց հեռախոսում — ընտրեք ցանկից');
+      await capPlugin('Share').share({title:name,files:[w.uri],dialogTitle:'Ուղարկել PDF-ը'});return}
+    if(window.smarteyeDesktop){
+      const r=await window.smarteyeDesktop.sendFile(a.key,name,new Uint8Array(await blob.arrayBuffer()));
+      toast(r.direct?'Telegram-ում ընտրեք չաթը — PDF-ն արդեն կցված է ✓':`PDF-ը պահվեց Downloads-ում ✓ — քաշեք այն ${a.n}-ի չաթի մեջ`);return}
+    if(canShareFiles()){await navigator.share({files:[new File([blob],name.replace(/[^\w.\-]+/g,'_'),{type:'application/pdf'})],title:name});return}
+    const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=name;document.body.appendChild(l);l.click();l.remove();
+    toast(`PDF-ը ներբեռնվեց ✓ — ${a.n}-ում սեղմեք 📎 և ընտրեք այն`);
+  }catch(e){if(!(e&&e.name==='AbortError'))toast('Չհաջողվեց ուղարկել ('+(e&&(e.message||e.name)||'error')+')')}
+}
 function shareChoice(id){
   const a=APPS[id];if(!quoteLines().length){toast('Գնահաշվարկը դատարկ է');return}
   let m=$('shChoose');if(m)m.remove();
@@ -1204,11 +1226,9 @@ function shareChoice(id){
   m.querySelector('.sc-txt').onclick=()=>{close();updShare();
     if(id==='shVb')copyNow('Պատճենված է ✓ — եթե Viber-ում տեքստը չլինի, սեղմեք Paste');
     window.open($(id).href,'_blank','noopener')};
-  m.querySelector('.sc-pdf').onclick=async()=>{close();
-    if(NATIVE||(!DESKTOP&&canShareFiles())){toast('Բացված ցանկում ընտրեք '+a.n);$('sendPdf').click();return}
-    await $('pdfQ').onclick();
-    if(DESKTOP){toast(`PDF-ը պահվեց «Downloads»-ում ✓ — քաշեք ֆայլը ${a.n}-ի չաթի մեջ`);setTimeout(()=>window.open(a.app,'_blank'),900)}
-    else toast(`PDF-ը ներբեռնվեց ✓ — ${a.n}-ում սեղմեք 📎 և ընտրեք այն`)};
+  m.querySelector('.sc-pdf').onclick=()=>{close();
+    if(DESKTOP&&!window.smarteyeDesktop){$('pdfQ').onclick().then(()=>{toast(`PDF-ը պահվեց «Downloads»-ում ✓ — քաշեք ֆայլը ${a.n}-ի չաթի մեջ`);setTimeout(()=>window.open(a.app,'_blank'),900)});return}
+    pdfDirect(a)};
 }
 Object.keys(APPS).forEach(id=>$(id).addEventListener('click',e=>{e.preventDefault();shareChoice(id)}));
 $('copyQ').onclick=async()=>{
@@ -1480,7 +1500,7 @@ $('pdfQ').onclick=async()=>{
     }else{
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
     }
-  }catch(e){toast('PDF-ը չստեղծվեց — ստուգեք ինտերնետը')}
+  }catch(e){toast('PDF-ը չստեղծվեց ('+(e&&e.message||e)+')')}
   btn.disabled=false;btn.textContent=NATIVE?'⬇ PDF — ուղարկել':'⬇ Ներբեռնել PDF';
 };
 

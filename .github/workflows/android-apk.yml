@@ -51,6 +51,10 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+          # native plugin: send the PDF straight to Telegram / Viber / WhatsApp
+          J=android/app/src/main/java/am/smarteye/pricemanager
+          test -f $J/MainActivity.java
+          cp native/DirectSharePlugin.java native/MainActivity.java $J/
 
       - name: App icon and splash
         continue-on-error: true
