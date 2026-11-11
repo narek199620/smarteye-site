@@ -104,7 +104,15 @@ body.pfon .prow{display:flex}
 .res{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid var(--sep)}
 .res .n{flex:1;font-size:14px;line-height:1.25}.res .n small{display:block;color:var(--mut);font-size:11.5px}
 .res .pr{font-weight:600;font-size:14px;white-space:nowrap}
-.res button{background:var(--acc);color:#fff;border:none;border-radius:9px;width:38px;height:36px;font-size:20px}
+.res .addb{position:relative;flex:none;background:var(--acc);color:#fff;border:none;border-radius:12px;width:48px;height:46px;font-size:26px;font-weight:600;touch-action:manipulation;transition:transform .12s,background .2s;box-shadow:0 3px 0 #1a56ad}
+.res .addb:active{transform:translateY(2px) scale(.94);box-shadow:0 1px 0 #1a56ad}
+.res .addb.has{background:var(--ok);color:#fff;box-shadow:0 3px 0 #0f6e44}
+.res .addb.pop{transform:scale(1.18)}
+.res .addb .qb{position:absolute;top:-7px;right:-7px;background:#fff;color:#16233d;font-size:12px;font-weight:700;min-width:20px;height:20px;line-height:20px;border-radius:10px;padding:0 5px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.res.flash{background:#16935b22;transition:background .6s}
+.cartbar{position:fixed;left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:6;background:var(--ok);color:#fff;border:none;border-radius:14px;padding:12px 16px;font-family:inherit;font-size:15px;font-weight:700;display:none;justify-content:space-between;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+html{touch-action:manipulation}
+body.cb .fab{display:none}
 #search{margin-bottom:4px}
 .cartrow{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--sep)}
 .cartrow .n{flex:1;font-size:13.5px;line-height:1.25}.cartrow .n small{display:block;color:var(--mut);font-size:11.5px}
@@ -167,7 +175,7 @@ nav button.on{color:var(--acc2)}
 nav svg{width:22px;height:22px}
 .custom .row label input{margin-top:0}
 .del{background:none;border:none;color:var(--bad);font-size:20px;width:28px}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1d3a7a;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+.toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);background:#1d3a7a;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
 .toast.on{opacity:1}
 .shc{position:fixed;inset:0;background:#0006;z-index:15;display:flex;align-items:flex-end;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
 .shc-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;width:100%;max-width:420px;box-shadow:0 10px 30px #0004}
@@ -443,6 +451,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var
   <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Կարգավոր.</button>
 </nav>
 <div class="toast" id="toast"></div>
+<button type="button" id="cartBar" class="cartbar"></button>
 <div id="login" class="login" style="display:none">
   <form class="lcard" id="lform" autocomplete="on">
     <svg width="54" height="54" viewBox="0 0 40 40"><path d="M2 20C8 10 14 6 20 6s12 4 18 14c-6 10-12 14-18 14S8 30 2 20z" fill="#0b1a3a" stroke="#2f8cff" stroke-width="2"/><circle cx="20" cy="20" r="7.5" fill="#123a8a" stroke="#5fd0ff" stroke-width="1.6"/><path d="M16.5 20.3l2.4 2.4 4.8-5" fill="none" stroke="#d9e2f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -650,14 +659,20 @@ function searchCatalog(qRaw,filt){if(filt===undefined)filt=supFilter;
 }
 function resRow(it){
     const r=document.createElement('div');r.className='res';
-    r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${it.est?'≈':''}${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button">+</button>`;
+    r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${it.est?'≈':''}${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button" class="addb">+</button>`;
     {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
       if(parts.length>1){const ar=document.createElement('button');ar.type='button';ar.className='arw';ar.textContent='▸';mb.appendChild(ar);const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);ar.onclick=e=>{e.stopPropagation();nd.classList.toggle('open');ar.textContent=nd.classList.contains('open')?'▾':'▸'}}}
     if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1&&it.s.toLowerCase()!==it.b.toLowerCase()?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
-    r.querySelector('button').onclick=()=>{
-      const ex=cart.find(c=>c.n===it.n&&c.k===it.k);
+    const ab=r.querySelector('.addb');
+    const inCart=()=>{const ex=cart.find(c=>c.n===it.n&&c.k===(it.k||''));return ex?ex.q:0};
+    const paint=()=>{const n=inCart();ab.innerHTML=n?`+<span class="qb">${n}</span>`:'+';ab.classList.toggle('has',!!n)};paint();
+    ab.onclick=e=>{
+      e.stopPropagation();
+      const ex=cart.find(c=>c.n===it.n&&c.k===(it.k||''));
       if(ex)ex.q++;else cart.push({n:it.n,k:it.k||'',d:it.sp||'',p:it.p,cost:it.cost,q:1,s:it.s||'',st:it.stk||''});
-      LS.set('cart',cart);renderCart();calcQuote();toast('Ավելացվեց ✓');
+      LS.set('cart',cart);renderCart();calcQuote();
+      ab.classList.add('pop');setTimeout(()=>ab.classList.remove('pop'),350);r.classList.add('flash');setTimeout(()=>r.classList.remove('flash'),600);
+      paint();cartBar();try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}
     };
     return r;
 }
@@ -682,8 +697,9 @@ function renderResults(){
   if(hits.fuzzy){const n=document.createElement('div');n.className='note';n.style.marginTop='0';n.textContent='Ճշգրիտ համընկնում չկա, մոտ արդյունքներ․';box.appendChild(n)}
   hits.forEach(it=>box.appendChild(resRow(it)));
 }
-$('search').oninput=renderResults;
-$('search').onkeydown=e=>{if(e.key==='Enter'){const b=document.querySelector('#results .res button');if(b){b.click();$('search').select()}}};
+$('search').oninput=()=>{renderResults();cartBar()};
+$('cartBar').onclick=()=>{$('search').value='';renderResults();cartBar();$('cart').scrollIntoView({behavior:'smooth',block:'start'})};
+$('search').onkeydown=e=>{if(e.key==='Enter'){const b=document.querySelector('#results .res .addb');if(b){b.click();$('search').select()}}};
 function renderCart(){
   const box=$('cart');box.innerHTML='';
 
@@ -1138,6 +1154,10 @@ function explainOf(l,L){
   return out.join(' · ');
 }
 
+function cartBar(){const b=$('cartBar');if(!b)return;const onQ=$('v-quote').classList.contains('on');const n=cart.reduce((a,c)=>a+(c.q||0),0);
+  const on=onQ&&n&&$('search').value.trim();document.body.classList.toggle('cb',!!on);
+  if(!on){b.style.display='none';return}
+  b.style.display='flex';b.innerHTML=`<span>🧾 Ընտրված՝ ${n} ապրանք</span><span>${fmt(calcQuote().tot)} ›</span>`}
 function quoteLines(){
   const L=[];
   cart.forEach(c=>{if(c.q>0)L.push({n:shortName(c),d:c.d||shortDesc(c),q:c.q,u:'հատ',p:c.p,cost:c.cost==null?null:c.cost,kind:'prod'})});
@@ -2105,6 +2125,7 @@ $('hSearch').oninput=drawHistory;
 /* ---------- Tabs ---------- */
 const views=['quote','prod','cli','hist','tools','set','hdd','poe'];
 function show(v){
+  setTimeout(cartBar,0);
   if(!views.includes(v))v='quote';
   $('backBtn').style.display=v==='quote'?'none':'block';
   if(v==='hdd'||v==='poe')v='tools';
