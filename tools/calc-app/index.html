@@ -86,6 +86,9 @@ body.pfon .prow{display:flex}
 .cst:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mut)}
 .cst.ok:before{background:var(--ok)}.cst.busy:before{background:var(--warn)}.cst.err:before{background:var(--bad)}
 .cst:empty{display:none}
+.refbtn{flex:none;margin-left:auto;background:var(--btn2);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;border-radius:50%;font-size:22px;line-height:1;padding:0;cursor:pointer}
+.cst+.refbtn{margin-left:6px}.cst:empty+.refbtn{margin-left:auto}
+.refbtn.spin{animation:refspin .8s linear infinite}@keyframes refspin{to{transform:rotate(360deg)}}
 .login{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 .lcard{width:100%;max-width:360px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
 .hq{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--sep)}
@@ -195,6 +198,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var
 <svg width="38" height="38" viewBox="0 0 40 40"><path d="M2 20C8 10 14 6 20 6s12 4 18 14c-6 10-12 14-18 14S8 30 2 20z" fill="#0b1a3a" stroke="#2f8cff" stroke-width="2"/><circle cx="20" cy="20" r="7.5" fill="#123a8a" stroke="#5fd0ff" stroke-width="1.6"/><path d="M16.5 20.3l2.4 2.4 4.8-5" fill="none" stroke="#d9e2f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 <h1>SmartEye <span>System</span><small>Price Manager · գնահաշվարկ</small></h1>
 <span id="cloudSt" class="cst" title=""></span>
+<button type="button" id="refreshBtn" class="refbtn" aria-label="Թարմացնել" title="Թարմացնել">⟳</button>
 </header>
 
 <div class="fab"><button type="button" id="fabUp" aria-label="Վերև">⬆</button><button type="button" id="fabSum" aria-label="Ընդամենը">🧮</button><button type="button" id="fabDown" aria-label="Ներքև">⬇</button></div>
@@ -1938,6 +1942,8 @@ function cliStatus(c){ // free-service window from the latest installation
   if(new Date()<end)return {cls:left<=1?'warn':'ok',txt:left<1?`անվճար՝ մինչև ${dfmt(end)}`:`անվճար՝ ${left} ամիս`,end,inst};
   return {cls:'off',txt:'վճարովի',end,inst};
 }
+function warLine(it){const m=it.war??12;if(!m||!it.date)return '';const end=addMonths(it.date,m);const ok=new Date()<end;
+  return `<span class="pst ${ok?'ok':'bad'}" style="margin-right:4px">🛡 ${ok?'երաշխիք մինչև '+dfmt(end):'երաշխիքն ավարտվել է '+dfmt(end)}</span>`}
 const camsOf=c=>(c.inst||[]).reduce((a,i)=>a+(+i.cams||0),0);
 // payments: price/amount = billed, got = received (old records without «got» count as fully paid)
 const dueOf=x=>{const b=+(x.price??x.amount)||0;if(x.amount!==undefined&&x.price===undefined&&!x.paid)return {b:0,g:0,d:0};const g=x.got===undefined?b:(+x.got||0);return {b,g,d:Math.max(0,b-g)}};
@@ -1952,7 +1958,7 @@ function renderClients(){
   $('cliStats').innerHTML=`<div class="cstat"><b>${clients.length}</b><small>հաճախորդ</small></div><div class="cstat"><b>${clients.reduce((a,c)=>a+camsOf(c),0)}</b><small>տեսախցիկ տեղադրված</small></div><div class="cstat"><b>${nFree}</b><small>անվճար սպասարկման մեջ</small></div><div class="cstat"><b style="color:${totDebt?'var(--bad)':'inherit'};font-size:${totDebt>=100000?12.5:16}px;white-space:nowrap;line-height:24px">${totDebt?fmt(totDebt):'0'}</b><small>պարտք</small></div>`;
   const ch=$('cliChips');ch.innerHTML='';[['','Բոլորը'],['free','🟢 Անվճար'],['soon',`🟠 Շուտով ավարտվում է${nSoon?' · '+nSoon:''}`],['paid','⚪ Վճարովի'],['debt',`🔴 Պարտք${nDebt?' · '+nDebt:''}`]].forEach(([f,l])=>{const b=document.createElement('button');b.type='button';b.className='chip'+(cliFilter===f?' on':'');b.textContent=l;b.onclick=()=>{cliFilter=f;LS.set('cliFilter',f);renderClients()};ch.appendChild(b)});
   const list=st.filter(({c,s})=>(!cliFilter||(cliFilter==='free'&&(s.cls==='ok'||s.cls==='warn'))||(cliFilter==='soon'&&s.cls==='warn')||(cliFilter==='paid'&&s.cls==='off')||(cliFilter==='debt'&&debtOf(c)>0))
-    &&(!q||norm([c.name,c.phone,c.addr,c.note,...(c.inst||[]).map(i=>i.items+' '+i.work),...(c.visits||[]).map(v=>v.work)].join(' ')).includes(q)))
+    &&(!q||norm([c.name,c.phone,c.addr,c.note,...(c.inst||[]).map(i=>i.items+' '+i.work+' '+(i.sn||'')),...(c.visits||[]).map(v=>v.work)].join(' ')).includes(q)))
     .sort((a,b)=>String(b.c.updated||'').localeCompare(String(a.c.updated||'')));
   const box=$('cliList');box.innerHTML='';
   if(!list.length)box.innerHTML=`<div class="note">${clients.length?'Չի գտնվել':'Դեռ հաճախորդ չկա։ Ավելացրեք «＋ Նոր հաճախորդ»-ով կամ գնահաշվարկից՝ «✅ Պատվերը ընդունվեց»։'}</div>`;
@@ -1986,7 +1992,7 @@ function openClient(id){
   // installations
   const ib=q('.c_inst');(c.inst||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(it=>{
     const end=addMonths(it.date,it.free??6);const d=document.createElement('div');d.className='ev';
-    d.innerHTML=`<b>${dfmt(it.date)} · ${it.cams||0} տեսախցիկ</b><small>${esc(ago(it.date))} · անվճար սպասարկում մինչև ${dfmt(end)} (${it.free??6} ամիս)${it.price?' · '+fmt(it.price):''}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(it.items||'')}</div>${it.work?`<div style="color:var(--acc2);margin-top:3px">${esc(it.work)}</div>`:''}${pst(it)}<div class="acts">${dueOf(it).d?'<button type="button" class="pay">✓ Վճարվեց</button>':''}<button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
+    d.innerHTML=`<b>${dfmt(it.date)} · ${it.cams||0} տեսախցիկ</b><small>${esc(ago(it.date))} · անվճար սպասարկում մինչև ${dfmt(end)} (${it.free??6} ամիս)${it.price?' · '+fmt(it.price):''}</small><div style="white-space:pre-wrap;margin-top:4px">${esc(it.items||'')}</div>${it.work?`<div style="color:var(--acc2);margin-top:3px">${esc(it.work)}</div>`:''}${warLine(it)}${it.sn?`<div style="font-size:12px;color:var(--mut);margin-top:3px;white-space:pre-wrap">SN՝ ${esc(it.sn)}</div>`:''}${pst(it)}<div class="acts">${dueOf(it).d?'<button type="button" class="pay">✓ Վճարվեց</button>':''}<button type="button" class="e">✎ Փոխել</button><button type="button" class="x" style="color:var(--bad)">Ջնջել</button></div>`;
     d.querySelector('.e').onclick=()=>instForm(c,it);
     const pb=d.querySelector('.pay');if(pb)pb.onclick=async()=>{it.got=+it.price||0;await saveClient(c);openClient(c.id);renderClients();toast('Վճարված է ✓')};
     const x=d.querySelector('.x');x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent='Ջնջե՞լ';return}c.inst=c.inst.filter(z=>z!==it);await saveClient(c);openClient(c.id);renderClients()};
@@ -2013,11 +2019,12 @@ function instForm(c,it){
    <button type="button" class="pjadd i_fromq">⬇ Լրացնել ընթացիկ գնահաշվարկից</button>
    <label>Ինչ աշխատանք է արվել<textarea class="i_w" rows="2" placeholder="մալուխ 80 մ, NVR կարգաբերում, հավելված հեռախոսում…"></textarea></label>
    <div class="grid2"><label>Անվճար սպասարկում (ամիս)<input type="number" inputmode="numeric" class="i_f"></label><label>Գումար ֏<input type="number" inputmode="numeric" class="i_p"></label></div>
+   <div class="grid2"><label>Երաշխիք (ամիս)<input type="number" inputmode="numeric" class="i_w2" placeholder="12"></label><label>Սերիական համարներ<textarea class="i_sn" rows="1" placeholder="DS-… / SN, ամեն մեկը նոր տողում"></textarea></label></div>
    <div class="grid2"><label>Վճարված ֏<input type="number" inputmode="numeric" class="i_g" placeholder="0"></label><label>&nbsp;<button type="button" class="pjadd i_all" style="margin:0;width:100%;padding:9px">✓ Ամբողջը վճարված է</button></label></div>
    <button type="button" class="btn i_save">Պահպանել</button></div>`;
-  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';q('.i_i').value=it.items||'';q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';q('.i_g').value=it.got===undefined?(isNew?'':(it.price||'')):(it.got||'');q('.i_all').onclick=()=>{q('.i_g').value=q('.i_p').value||0};
+  const q=x=>f.querySelector(x);q('.i_d').value=it.date;q('.i_c').value=it.cams||'';q('.i_i').value=it.items||'';q('.i_w').value=it.work||'';q('.i_f').value=it.free??6;q('.i_p').value=it.price||'';q('.i_w2').value=it.war??12;q('.i_sn').value=it.sn||'';q('.i_g').value=it.got===undefined?(isNew?'':(it.price||'')):(it.got||'');q('.i_all').onclick=()=>{q('.i_g').value=q('.i_p').value||0};
   q('.i_fromq').onclick=()=>{const cs=cartSummary();if(!cs.items){toast('Գնահաշվարկը դատարկ է');return}q('.i_i').value=cs.items;q('.i_c').value=cs.cams;q('.i_p').value=Math.round(calcQuote().tot)};
-  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;it.items=q('.i_i').value.trim();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;it.got=Math.min(+q('.i_g').value||0,it.price);
+  q('.i_save').onclick=async()=>{it.date=q('.i_d').value||today();it.cams=+q('.i_c').value||0;it.items=q('.i_i').value.trim();it.work=q('.i_w').value.trim();it.free=+q('.i_f').value||0;it.price=+q('.i_p').value||0;it.war=q('.i_w2').value===''?12:(+q('.i_w2').value||0);it.sn=q('.i_sn').value.trim();it.got=Math.min(+q('.i_g').value||0,it.price);
     c.inst=c.inst||[];if(isNew)c.inst.push(it);await saveClient(c);openClient(c.id);renderClients();toast('Պահպանվեց ✓')};
   f.scrollIntoView({behavior:'smooth'});
 }
@@ -2097,6 +2104,16 @@ function acctUI(){
 }
 function showLogin(){$('login').style.display='flex';setTimeout(()=>$('lEmail').focus(),100)}
 async function signedIn(user){CLOUD.user=user;CLOUD.offline=false;$('login').style.display='none';acctUI();await pullAll()}
+$('refreshBtn').onclick=async()=>{
+  const b=$('refreshBtn');if(b.classList.contains('spin'))return;b.classList.add('spin');
+  try{
+    if(cloudOn())await pullAll();
+    rebuildCatalog();catUI();renderResults();renderCart();renderItems();renderCustoms();renderPrices();calcQuote();
+    if($('v-cli').classList.contains('on'))renderClients();if($('v-prod').classList.contains('on')){renderProd();renderProj();renderShops()}
+    renderHistory();toast(cloudOn()?'Թարմացվեց ✓ (ամպից)':'Թարմացվեց ✓');
+  }catch(e){toast('Չհաջողվեց թարմացնել'+(e&&e.message?': '+e.message.slice(0,60):''))}
+  b.classList.remove('spin');
+};
 async function cloudInit(){
   const c=window.SE_CONFIG;
   if(!c||!c.SUPABASE_URL||!c.SUPABASE_ANON_KEY||!window.supabase){renderHistory();return}
