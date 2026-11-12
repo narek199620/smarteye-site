@@ -446,3 +446,8 @@ h1.hero-kicker { font-family: inherit; font-size: .85rem; font-weight: 500; line
 
 /* long Armenian words in narrow cards */
 .step p, .step h6, .dev-card p, .dev-card h6 { overflow-wrap: break-word; }
+
+/* template credit: kept (CC BY 4.0) but low-key */
+.tpl-credit { font-size: .72rem; color: rgba(255,255,255,.28); }
+.tpl-credit a { color: rgba(255,255,255,.34) !important; text-decoration: none; border: 0 !important; }
+.tpl-credit a:hover { color: rgba(255,255,255,.6) !important; }
