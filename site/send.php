@@ -42,12 +42,12 @@ function telegram($text) {
 
 function telegram_photos($caption) {
     $chat = tg_chat();
-    if (!defined('TG_TOKEN') || TG_TOKEN === '' || $chat === '' || empty($_FILES['photos']['tmp_name'])) {
+    if (!function_exists('curl_init') || !defined('TG_TOKEN') || TG_TOKEN === '' || $chat === '' || empty($_FILES['photos']['tmp_name'])) {
         return 0;
     }
     $sent = 0;
     foreach (array_slice((array)$_FILES['photos']['tmp_name'], 0, 5) as $i => $tmp) {
-        if (!is_uploaded_file($tmp) || filesize($tmp) > 10 * 1024 * 1024 || !@getimagesize($tmp)) {
+        if (!is_string($tmp) || !is_uploaded_file($tmp) || filesize($tmp) > 10 * 1024 * 1024 || !@getimagesize($tmp)) {
             continue;
         }
         $ch = curl_init('https://api.telegram.org/bot' . TG_TOKEN . '/sendPhoto');
@@ -73,7 +73,9 @@ function back($status) {
 }
 
 function field($name, $max = 500) {
-    $v = trim((string)($_POST[$name] ?? ''));
+    $raw = $_POST[$name] ?? '';
+    if (!is_string($raw)) return '';
+    $v = trim($raw);
     $v = str_replace(["\r", "\0"], '', $v);
     return mb_substr($v, 0, $max, 'UTF-8');
 }
@@ -119,7 +121,7 @@ if ($loc !== '' && preg_match('~^https://maps\.google\.com/\?q=-?\d+(\.\d+)?,-?\
 }
 $nPhotos = empty($_FILES['photos']['tmp_name']) ? 0 : count(array_filter((array)$_FILES['photos']['tmp_name']));
 if ($nPhotos) {
-    $lines[] = "📷 Կցված նկարներ: " . min($nPhotos, 5) . " (ուղարկված են Telegram-ով)";
+    $lines[] = "📷 Կցված նկարներ: " . min($nPhotos, 5) . " (Telegram-ով ուղարկման համար)";
 }
 $lines[] = "\n—\nՈւղարկվել է smarteye.am-ից, " . date('Y-m-d H:i');
 
