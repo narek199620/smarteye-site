@@ -13,7 +13,7 @@
     
     
     // Initiate the wowjs
-    new WOW().init();
+    if (typeof window.WOW === 'function') new window.WOW().init();
 
 
     // Sticky Navbar
@@ -35,20 +35,20 @@
         }
     });
     $('.back-to-top').click(function () {
-        $('html, body').animate({scrollTop: 0}, 1500, 'easeInOutExpo');
+        $('html, body').animate({scrollTop: 0}, 1500, $.easing && $.easing.easeInOutExpo ? 'easeInOutExpo' : 'swing');
         return false;
     });
 
 
     // Facts counter
-    $('[data-toggle="counter-up"]').counterUp({
+    if ($.fn.counterUp) $('[data-toggle="counter-up"]').counterUp({
         delay: 10,
         time: 2000
     });
 
 
     // Header carousel
-    $(".header-carousel").owlCarousel({
+    if ($.fn.owlCarousel) $(".header-carousel").owlCarousel({
         autoplay: true,
         smartSpeed: 1500,
         items: 1,
@@ -63,7 +63,7 @@
 
 
     // Testimonials carousel
-    $('.testimonial-carousel').owlCarousel({
+    if ($.fn.owlCarousel) $('.testimonial-carousel').owlCarousel({
         autoplay: true,
         smartSpeed: 1000,
         loop: true,
@@ -75,6 +75,7 @@
 
 
     // Portfolio isotope and filter
+    if ($.fn.isotope && $('.portfolio-container').length) {
     var portfolioIsotope = $('.portfolio-container').isotope({
         itemSelector: '.portfolio-item',
         layoutMode: 'fitRows'
@@ -85,6 +86,7 @@
 
         portfolioIsotope.isotope({filter: $(this).data('filter')});
     });
+    }
     
 })(jQuery);
 
