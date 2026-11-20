@@ -1243,12 +1243,12 @@ def build():
 
     # services
     page("service.html", "service.html",
-         "Ծառայություններ | SmartEye System — տեսահսկում, ազդանշանային համակարգեր, ցանցեր",
-         site_desc, page_header("Ծառայություններ") + services_grid() + smart_teaser() + door_viewer() + ip_vs_analog() + calc_cta())
+         "Տեսահսկման և անվտանգության համակարգերի տեղադրում | SmartEye",
+         "Տեսախցիկների, ազդանշանային համակարգերի, LAN և Wi-Fi ցանցերի տեղադրում ու սպասարկում Երևանում և Արագածոտնում։ SmartEye՝ անվճար խորհրդատվություն։", page_header("Ծառայություններ") + services_grid() + smart_teaser() + door_viewer() + ip_vs_analog() + calc_cta())
 
     # projects / work
-    page("project.html", "project.html", "Աշխատանքներ | SmartEye System",
-         "SmartEye System-ի կատարած տեսախցիկների տեղադրումների լուսանկարներ և տեսանյութեր։",
+    page("project.html", "project.html", "Տեսախցիկների տեղադրման աշխատանքներ | SmartEye System",
+         "Դիտեք SmartEye System-ի կատարած տեսահսկման և ցանցային համակարգերի տեղադրման աշխատանքների իրական լուսանկարներն ու տեսանյութերը։",
          page_header("Աշխատանքներ") + our_work_cta(with_facebook=True) + calc_cta())
 
     # alarm
@@ -1267,8 +1267,8 @@ def build():
          page_header("Խելացի տեսախցիկներ") + smart_page_body())
 
     # quote
-    page("quote.html", "quote.html", "Անվճար խորհրդատվություն | SmartEye System",
-         "Թողեք հայտ և ստացեք անվճար խորհրդատվություն տեսախցիկների, ազդանշանային համակարգերի կամ ցանցի տեղադրման համար։",
+    page("quote.html", "quote.html", "Տեսախցիկների տեղադրման հաշվիչ և խորհրդատվություն | SmartEye",
+         "Հաշվիչով կազմեք տեսախցիկների և ազդանշանային համակարգի նախնական հայտը։ Ստացեք անվճար խորհրդատվություն Երևանում և Արագածոտնում։",
          page_header("Անվճար խորհրդատվություն") + calculator(PHONE, PHONE_TXT) + ip_vs_analog(), FORM_JS)
 
     # contact
