@@ -78,6 +78,7 @@ def head(title, desc, fname="index.html"):
 
 <head>
     <meta charset="utf-8">
+    <meta name="google-site-verification" content="jzyjMfWdNy5lkO2G-h0G1V_GIiICbEQ9Tr7tfXvsWEY" />
     <title>{title}</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="տեսախցիկների տեղադրում, տեսահսկում Երևան, ազդանշանային համակարգ, ալարմ, լոկալ ցանց, LAN, Hikvision, Dahua, խանութի ավտոմատացում, առևտրային սարքավորումներ, POS, շտրիխկոդի սկաներ, խանութի կշեռք, SmartEye" name="keywords">
