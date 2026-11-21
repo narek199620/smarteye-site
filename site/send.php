@@ -50,10 +50,15 @@ function telegram_photos($caption) {
         if (!is_string($tmp) || !is_uploaded_file($tmp) || filesize($tmp) > 10 * 1024 * 1024 || !@getimagesize($tmp)) {
             continue;
         }
+        // Detect the actual MIME type instead of labeling every upload JPEG.
+        $image = @getimagesize($tmp);
+        $mime = $image['mime'] ?? '';
+        $allowed = ['image/jpeg' => 'photo.jpg', 'image/png' => 'photo.png', 'image/webp' => 'photo.webp'];
+        if (!isset($allowed[$mime])) continue;
         $ch = curl_init('https://api.telegram.org/bot' . TG_TOKEN . '/sendPhoto');
         curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
             CURLOPT_POSTFIELDS => ['chat_id' => $chat, 'caption' => $i === 0 ? $caption : '',
-                                   'photo' => new CURLFile($tmp, 'image/jpeg', 'photo.jpg')]]);
+                                   'photo' => new CURLFile($tmp, $mime, $allowed[$mime])]]);
         if (curl_exec($ch) !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) $sent++;
         curl_close($ch);
     }
@@ -83,6 +88,13 @@ function field($name, $max = 500) {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: quote.html', true, 302);
     exit;
+}
+
+// Reject oversized form bodies before processing fields or uploaded images.
+// Allow five 10 MB images plus multipart overhead.
+if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 55 * 1024 * 1024) {
+    http_response_code(413);
+    exit('Request too large');
 }
 
 // Spam trap: real visitors never see or fill this field.
