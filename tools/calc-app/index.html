@@ -212,6 +212,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var
       <button class="btn" id="pkgBtn" type="button" style="margin:0">📦 Պատրաստի փաթեթ</button>
       <button class="btn ghost" id="vmBtn" type="button" style="margin:0">🎛 3 տարբերակ</button>
     </div>
+    <button class="btn" id="quickQuoteBtn" type="button" style="width:100%;margin-top:8px">⚡ Արագ գնառաջարկ՝ 4 տեսախցիկ</button>
     <div id="pkgForm" class="pform" style="display:none;margin-top:10px"></div>
     <div id="vTabs" class="vtabs" style="display:none"></div>
     <div id="vInfo" class="note"></div>
@@ -1432,6 +1433,15 @@ function buildPkg(n,out,days,brand){
   });
   return {res,miss:[...new Set(miss)]};
 }
+$('quickQuoteBtn').onclick=()=>{
+  if(!catalog.length){toast('Նախ ներմուծեք մատակարարի գնացուցակը');return}
+  if(cart.length && !confirm('Փոխարինե՞լ ընթացիկ գնառաջարկը 4 տեսախցիկի պատրաստի փաթեթով։'))return;
+  const {res,miss}=buildPkg(4,2,30,'');
+  VM={on:true,act:'B',s:res};vmSave();slotLoad(res.B);renderVM();
+  $('pkgForm').style.display='none';
+  toast(miss.length?'Փաթեթը ստեղծվեց․ ստուգեք բացակայող ապրանքները':'4 տեսախցիկի գնառաջարկը պատրաստ է');
+  if(miss.length)alert('Գնացուցակում չգտնվեց՝ '+miss.join(', ')+'. Ստուգեք գնառաջարկը հաճախորդին ուղարկելուց առաջ։');
+};
 $('pkgBtn').onclick=()=>{
   const f=$('pkgForm');if(f.style.display==='block'){f.style.display='none';return}
   if(!catalog.length){toast('Նախ կցեք գնացուցակ («Ապրանքներ» էջում)');return}
