@@ -723,12 +723,31 @@ function searchCatalog(qRaw,filt){if(filt===undefined)filt=supFilter;
   res.sort((a,b)=>b.hit-a.hit||b.score-a.score||a.it.p-b.it.p);
   const out=res.slice(0,60).map(x=>x.it);out.fuzzy=fuzzy;return out;
 }
+// Compare only exact model identifiers across different supplier lists.
+// A product description alone is not reliable enough to establish model identity.
+function sameModelOffers(it){
+  const key=x=>String(x.k||String(x.n||'').split(' — ')[0]).toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const id=key(it);
+  if(id.length<6 || !/[A-Z]/.test(id) || !/\d/.test(id))return [];
+  return catalog.filter(x=>key(x)===id && Number.isFinite(+x.p) && +x.p>0)
+    .sort((a,b)=>(+a.p)-(+b.p));
+}
 function resRow(it){
     const r=document.createElement('div');r.className='res';
     r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${it.est?'≈':''}${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button" class="addb">+</button>`;
     {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
       if(parts.length>1){const ar=document.createElement('button');ar.type='button';ar.className='arw';ar.textContent='▸';mb.appendChild(ar);const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);ar.onclick=e=>{e.stopPropagation();nd.classList.toggle('open');ar.textContent=nd.classList.contains('open')?'▾':'▸'}}}
     if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1&&it.s.toLowerCase()!==it.b.toLowerCase()?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
+    const offers=sameModelOffers(it);
+    if(new Set(offers.map(x=>x.s)).size>1){
+      const best=offers[0];
+      const note=document.createElement('small');
+      note.className='spc';
+      note.textContent=best===it
+        ? '✓ Լավագույն գին · '+best.s+' · '+new Set(offers.map(x=>x.s)).size+' մատակարար'
+        : 'Համեմատել՝ '+best.s+' · '+fmt(best.p)+' (խնայողություն '+fmt((+it.p)-(+best.p))+')';
+      r.querySelector('.n').appendChild(note);
+    }
     const ab=r.querySelector('.addb');
     const inCart=()=>{const ex=cart.find(c=>c.n===it.n&&c.k===(it.k||''));return ex?ex.q:0};
     const paint=()=>{const n=inCart();ab.innerHTML=n?`+<span class="qb">${n}</span>`:'+';ab.classList.toggle('has',!!n)};paint();
