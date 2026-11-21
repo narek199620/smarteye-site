@@ -212,6 +212,7 @@ pre#qtext{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var
       <button class="btn" id="pkgBtn" type="button" style="margin:0">📦 Պատրաստի փաթեթ</button>
       <button class="btn ghost" id="vmBtn" type="button" style="margin:0">🎛 3 տարբերակ</button>
     </div>
+    <button class="btn" id="quickQuoteBtn" type="button" style="width:100%;margin-top:8px">⚡ Արագ գնառաջարկ՝ 4 տեսախցիկ</button>
     <div id="pkgForm" class="pform" style="display:none;margin-top:10px"></div>
     <div id="vTabs" class="vtabs" style="display:none"></div>
     <div id="vInfo" class="note"></div>
@@ -723,12 +724,31 @@ function searchCatalog(qRaw,filt){if(filt===undefined)filt=supFilter;
   res.sort((a,b)=>b.hit-a.hit||b.score-a.score||a.it.p-b.it.p);
   const out=res.slice(0,60).map(x=>x.it);out.fuzzy=fuzzy;return out;
 }
+// Compare only exact model identifiers across different supplier lists.
+// A product description alone is not reliable enough to establish model identity.
+function sameModelOffers(it){
+  const key=x=>String(x.k||String(x.n||'').split(' — ')[0]).toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const id=key(it);
+  if(id.length<6 || !/[A-Z]/.test(id) || !/\d/.test(id))return [];
+  return catalog.filter(x=>key(x)===id && Number.isFinite(+x.p) && +x.p>0)
+    .sort((a,b)=>(+a.p)-(+b.p));
+}
 function resRow(it){
     const r=document.createElement('div');r.className='res';
     r.innerHTML=`<div class="n"></div><div class="pr">${fmt(it.p)}${it.cost!=null&&it.cost!==it.p?`<br><span class="diff">իմը ${it.est?'≈':''}${fmt(it.cost)}<br>+${fmt(it.p-it.cost)}</span>`:''}${it.stk?`<br><span style="font-size:11px;color:${it.stk==='ok'?'var(--ok)':'var(--bad)'}">${it.stk==='ok'?'✓ առկա':'✗ չկա'}</span>`:''}</div><button type="button" class="addb">+</button>`;
     {const nd=r.querySelector('.n');const parts=String(it.n).split(' — ');const mb=document.createElement('b');mb.className='mdl';mb.textContent=parts[0];nd.appendChild(mb);
       if(parts.length>1){const ar=document.createElement('button');ar.type='button';ar.className='arw';ar.textContent='▸';mb.appendChild(ar);const ds=document.createElement('span');ds.className='dsc';ds.textContent=parts.slice(1).join(' — ');nd.appendChild(ds);ar.onclick=e=>{e.stopPropagation();nd.classList.toggle('open');ar.textContent=nd.classList.contains('open')?'▾':'▸'}}}
     if(!supFilter||!supFilter.startsWith('b:')){const t=document.createElement('span');t.className='tag';t.textContent=it.b+(lists.length>1&&it.s.toLowerCase()!==it.b.toLowerCase()?' · '+it.s:'');r.querySelector('.n').prepend(t)} if(it.sp||it.k||it.c){const sm=document.createElement('small');sm.className='spc';sm.textContent=[it.sp,(it.k&&!String(it.n).includes(it.k))?it.k:'',it.c].filter(Boolean).join(' · ');r.querySelector('.n').appendChild(sm)}
+    const offers=sameModelOffers(it);
+    if(new Set(offers.map(x=>x.s)).size>1){
+      const best=offers[0];
+      const note=document.createElement('small');
+      note.className='spc';
+      note.textContent=best===it
+        ? '✓ Լավագույն գին · '+best.s+' · '+new Set(offers.map(x=>x.s)).size+' մատակարար'
+        : 'Համեմատել՝ '+best.s+' · '+fmt(best.p)+' (խնայողություն '+fmt((+it.p)-(+best.p))+')';
+      r.querySelector('.n').appendChild(note);
+    }
     const ab=r.querySelector('.addb');
     const inCart=()=>{const ex=cart.find(c=>c.n===it.n&&c.k===(it.k||''));return ex?ex.q:0};
     const paint=()=>{const n=inCart();ab.innerHTML=n?`+<span class="qb">${n}</span>`:'+';ab.classList.toggle('has',!!n)};paint();
@@ -1162,8 +1182,10 @@ $('m_save').onclick=()=>{
 
 function profitOf(L,sub,tot){
   let ps=0,pc=0,work=0,unk=0;
-  L.forEach(l=>{if(l.kind==='prod'){if(l.cost==null||l.cost===''){unk++;return}ps+=l.q*l.p;pc+=l.q*l.cost}else work+=l.q*l.p});
-  const disc=sub-tot, unkSale=L.filter(l=>l.kind==='prod'&&(l.cost==null||l.cost==='')).reduce((s,l)=>s+l.q*l.p,0);
+  // A missing, negative or non-finite cost must never be treated as known profit.
+  const missingCost=l=>l.cost==null||l.cost===''||!Number.isFinite(+l.cost)||+l.cost<0;
+  L.forEach(l=>{if(l.kind==='prod'){if(missingCost(l)){unk++;return}ps+=l.q*l.p;pc+=l.q*(+l.cost)}else work+=l.q*l.p});
+  const disc=sub-tot, unkSale=L.filter(l=>l.kind==='prod'&&missingCost(l)).reduce((s,l)=>s+l.q*l.p,0);
   const profit=(ps-pc)+work-disc;
   return {ps,pc,work,disc,unk,unkSale,profit,pct:tot>0?profit/tot*100:0};
 }
@@ -1175,8 +1197,8 @@ function renderProfit(pf){
   const row=(k,v,st)=>`<div class="kv"><span>${k}</span><b${st?` style="${st}"`:''}>${v}</b></div>`;
   b.innerHTML=row('Ապրանքներ՝ վաճառք',fmt(pf.ps))+row('Ապրանքներ՝ ինքնարժեք','− '+fmt(pf.pc))+row('Ապրանքների եկամուտ',fmt(pf.ps-pf.pc))
     +row('Աշխատանքներ',fmt(pf.work))+(pf.disc>0?row('Զեղչ','− '+fmt(pf.disc)):'')
-    +`<div class="kv pft"><span>Շահույթ</span><b style="color:${pf.profit<0?'var(--bad)':'var(--ok)'}">${fmt(pf.profit)} · ${pf.pct.toFixed(0)}%</b></div>`
-    +(pf.unk?`<div class="note" style="color:var(--warn)">${pf.unk} ապրանքի ինքնարժեքը հայտնի չէ (${fmt(pf.unkSale)})․ լրացրեք «Ինքնարժեք» դաշտը ապրանքի տակ։</div>`:'')
+    +`<div class="kv pft"><span>${pf.unk?'Շահույթ (ոչ ամբողջական)':'Շահույթ'}</span><b style="color:${pf.unk?'var(--warn)':pf.profit<0?'var(--bad)':'var(--ok)'}">${pf.unk?'Հաշվարկը թերի է':fmt(pf.profit)+' · '+pf.pct.toFixed(0)+'%'}</b></div>`
+    +(pf.unk?`<div class="note" style="color:var(--warn)">${pf.unk} ապրանքի ինքնարժեքը բացակայում է կամ անվավեր է (${fmt(pf.unkSale)})․ շահույթը հնարավոր չէ ճշգրիտ հաշվել։ Լրացրեք «Ինքնարժեք» դաշտը։</div>`:'')
     +'<div class="note">Այս տվյալները չեն երևում PDF-ում և հաճախորդին ուղարկվող տեքստում։</div>';
 }
 $('pfBtn').onclick=()=>{showPf=!showPf;LS.set('showPf',showPf);calcQuote()};
@@ -1432,6 +1454,15 @@ function buildPkg(n,out,days,brand){
   });
   return {res,miss:[...new Set(miss)]};
 }
+$('quickQuoteBtn').onclick=()=>{
+  if(!catalog.length){toast('Նախ ներմուծեք մատակարարի գնացուցակը');return}
+  if(cart.length && !confirm('Փոխարինե՞լ ընթացիկ գնառաջարկը 4 տեսախցիկի պատրաստի փաթեթով։'))return;
+  const {res,miss}=buildPkg(4,2,30,'');
+  VM={on:true,act:'B',s:res};vmSave();slotLoad(res.B);renderVM();
+  $('pkgForm').style.display='none';
+  toast(miss.length?'Փաթեթը ստեղծվեց․ ստուգեք բացակայող ապրանքները':'4 տեսախցիկի գնառաջարկը պատրաստ է');
+  if(miss.length)alert('Գնացուցակում չգտնվեց՝ '+miss.join(', ')+'. Ստուգեք գնառաջարկը հաճախորդին ուղարկելուց առաջ։');
+};
 $('pkgBtn').onclick=()=>{
   const f=$('pkgForm');if(f.style.display==='block'){f.style.display='none';return}
   if(!catalog.length){toast('Նախ կցեք գնացուցակ («Ապրանքներ» էջում)');return}
