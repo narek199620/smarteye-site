@@ -123,14 +123,19 @@ jobs:
 
   release:
     needs: [android, windows]
-    if: always() && needs.android.result == 'success'
+    # Publish a complete release only when both installers build successfully.
+    if: needs.android.result == 'success' && needs.windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: out
           merge-multiple: true
-      - run: ls -la out
+      - name: Verify both installers before publishing
+        run: |
+          test -s out/SmartEye-PriceManager.apk
+          test -s out/SmartEye-PriceManager-Setup.exe
+          ls -lh out/SmartEye-PriceManager.apk out/SmartEye-PriceManager-Setup.exe
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
