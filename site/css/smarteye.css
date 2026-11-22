@@ -451,3 +451,65 @@ h1.hero-kicker { font-family: inherit; font-size: .85rem; font-weight: 500; line
 .tpl-credit { font-size: .72rem; color: rgba(255,255,255,.28); }
 .tpl-credit a { color: rgba(255,255,255,.34) !important; text-decoration: none; border: 0 !important; }
 .tpl-credit a:hover { color: rgba(255,255,255,.6) !important; }
+
+
+/* Mobile home-page hero refinements — 2026-11-22.
+   Scoped to the hero so calculators, inner pages and desktop stay unchanged. */
+@media (max-width: 767.98px) {
+    .hero { padding: 2.5rem 0 3rem; }
+    .hero .row { --bs-gutter-y: 2rem; }
+    .hero-kicker, h1.hero-kicker {
+        display: block;
+        max-width: 34ch;
+        font-size: .8rem;
+        line-height: 1.55;
+        letter-spacing: 0;
+        margin-bottom: .85rem;
+    }
+    .hero-title {
+        font-size: clamp(1.65rem, 6.5vw, 2.15rem);
+        line-height: 1.2;
+        letter-spacing: -.015em;
+        overflow-wrap: normal;
+        hyphens: none;
+        margin-bottom: 1rem;
+    }
+    .hero-lead {
+        font-size: .97rem;
+        line-height: 1.65;
+        margin-bottom: 1.4rem;
+    }
+    .hero .btn-lg {
+        font-size: .95rem;
+        padding: .8rem 1.2rem;
+        max-width: 100%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.35;
+    }
+    .hero .d-flex.flex-wrap.gap-3 { gap: .7rem !important; margin-bottom: 1.1rem !important; }
+    .hero-pdf {
+        display: inline-flex;
+        padding: .6rem .85rem;
+        border: 1px solid rgba(143,180,255,.4);
+        border-radius: 10px;
+        font-size: .88rem;
+        line-height: 1.4;
+        max-width: 100%;
+    }
+    .hero-img { border-radius: 14px; }
+    .call-float {
+        left: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        padding: .55rem 1rem;
+        font-size: .9rem;
+    }
+    .back-to-top {
+        right: 12px !important;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+@media (max-width: 375px) {
+    .hero-title { font-size: 1.6rem; }
+    .hero .btn-lg { font-size: .9rem; }
+}
