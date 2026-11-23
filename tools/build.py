@@ -128,6 +128,11 @@ def topbar_nav(active):
         f'                <a href="{h}" class="nav-item nav-link{" active" if h == active else ""}">{t}</a>'
         for h, t in NAV)
     return f"""
+    <!-- SmartEye consultation banner -->
+    <div style="background:#eaf5ff;padding:12px 16px;text-align:center;color:#12304a;font-size:15px;line-height:1.6;border-bottom:1px solid #c9e3fa">
+      <strong>Պլանավորո՞ւմ եք տեսախցիկների կամ անվտանգության համակարգի տեղադրում։</strong>
+      <a href="quote.html" style="display:inline-block;margin-left:12px;padding:7px 18px;background:#0879c9;color:#fff;text-decoration:none;border-radius:24px;font-weight:700">Ստանալ անվճար խորհրդատվություն</a>
+    </div>
     <!-- Topbar Start -->
     <div class="container-fluid bg-dark px-5">
         <div class="row gx-4 d-none d-lg-flex">
