@@ -1103,6 +1103,9 @@ def build():
     for d in ("css", "js", "lib", "img"):
         shutil.copytree(os.path.join(SRC, d), os.path.join(OUT, d), dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns("*.doc", "*.docx", "*.pdf", "*.txt"))
+    # Preserve the independent price-comparison site during a full rebuild.
+    if os.path.isdir(os.path.join(SRC, "prices")):
+        shutil.copytree(os.path.join(SRC, "prices"), os.path.join(OUT, "prices"), dirs_exist_ok=True)
     shutil.copytree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "work-photos"), os.path.join(OUT, "img", "work"), dirs_exist_ok=True)
     shutil.copytree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "work-videos"), os.path.join(OUT, "img", "video"), dirs_exist_ok=True)
     shutil.copy(os.path.join(os.path.dirname(__file__), "send.php"), os.path.join(OUT, "send.php"))
